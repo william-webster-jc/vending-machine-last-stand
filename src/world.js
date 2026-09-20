@@ -78,6 +78,10 @@ export function createWorld(profile) {
     // Every bullet currently in the air.
     bullets: [],
 
+    // THE RESELLER, once he's turned up. null on ordinary nights.
+    boss: null,
+    bossDefeated: false,
+
     // The guards you've taken on, stood at their posts.
     hires: createHires(profile.hiredGuards),
 

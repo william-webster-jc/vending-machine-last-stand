@@ -11,6 +11,8 @@ import { drawMachine } from './entities/machine.js';
 import { drawBarricade } from './entities/barricade.js';
 import { drawGuard, getHirePalette } from './entities/guard-art.js';
 import { drawScalper } from './entities/scalper-art.js';
+import { drawBoss } from './entities/boss-art.js';
+import { BOSS_STATE, isWeakPointOpen } from './entities/boss.js';
 import { drawBullets } from './entities/bullet.js';
 import { drawGrenades, drawExplosions } from './entities/grenade.js';
 import {
@@ -65,6 +67,10 @@ export function drawScene(ctx, world, fps) {
 
   if (world.state === GAME_STATE.PLAYING || world.state === GAME_STATE.PAUSED) {
     drawWeaponBar(ctx, world);
+
+    if (world.boss && world.boss.health > 0) {
+      drawBossBar(ctx, world.boss);
+    }
   }
 
   if (world.nightBannerTimer > 0 && world.state === GAME_STATE.PLAYING) {
@@ -252,6 +258,10 @@ function drawCharacters(ctx, world) {
     { y: world.guard.y, draw: () => drawGuard(ctx, world.guard) },
   ];
 
+  if (world.boss && world.boss.health > 0) {
+    everyone.push({ y: world.boss.y, draw: () => drawBoss(ctx, world.boss) });
+  }
+
   // Hired guards are drawn by the exact same code as you, just handed a
   // different set of colours.
   const hirePalette = getHirePalette();
@@ -370,6 +380,96 @@ function drawNightSurvivedScreen(ctx, world) {
 // =============================================================================
 // TITLE, PAUSE, INSTRUCTIONS AND OPTIONS
 // =============================================================================
+
+// THE RESELLER's health, across the top, plus whatever he's about to do.
+//
+// The state caption matters more than the bar. A health bar tells you how the
+// fight is going; the caption tells you what to do in the next second.
+function drawBossBar(ctx, boss) {
+  const { width } = CONFIG.screen;
+  const c = CONFIG.colors;
+
+  const barWidth = 230;
+  const barHeight = 7;
+  const barX = Math.round((width - barWidth) / 2);
+  const barY = 14;
+
+  drawText(ctx, CONFIG.boss.name, width / 2, barY - 9, {
+    color: boss.enraged ? c.weakPointOpen : c.ammoFull,
+    outlineColor: c.inkOutline,
+    bold: true,
+    align: 'center',
+  });
+
+  ctx.fillStyle = c.bossBarEdge;
+  ctx.fillRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+  ctx.fillStyle = c.bossBarTrack;
+  ctx.fillRect(barX, barY, barWidth, barHeight);
+
+  const fraction = Math.max(0, boss.health / boss.maxHealth);
+  ctx.fillStyle = c.bossBarFill;
+  ctx.fillRect(barX, barY, Math.round(barWidth * fraction), barHeight);
+
+  // The halfway mark, so you can see the second gear coming.
+  ctx.fillStyle = c.bossBarEdge;
+  ctx.fillRect(barX + Math.round(barWidth * CONFIG.boss.enragedAtHealthFraction), barY, 1, barHeight);
+
+  drawBossCaption(ctx, boss, barY + barHeight + 4);
+}
+
+function drawBossCaption(ctx, boss, y) {
+  const { width } = CONFIG.screen;
+  const c = CONFIG.colors;
+
+  const caption = getBossCaption(boss);
+  if (!caption) return;
+
+  drawText(ctx, caption.text, width / 2, y, {
+    color: caption.color,
+    outlineColor: c.inkOutline,
+    bold: caption.loud,
+    align: 'center',
+  });
+
+  // While the window is open, a countdown bar shows exactly how long is left.
+  // Knowing you have half a second rather than 'some time' is the difference
+  // between committing to the shot and dithering.
+  if (boss.state !== BOSS_STATE.WINDING_UP) return;
+
+  const window = boss.enraged
+    ? CONFIG.boss.windupSecondsEnraged
+    : CONFIG.boss.windupSeconds;
+  const left = Math.max(0, 1 - boss.stateTimer / window);
+
+  const barWidth = 70;
+  const barX = Math.round((width - barWidth) / 2);
+
+  ctx.fillStyle = c.inkOutline;
+  ctx.fillRect(barX - 1, y + 10, barWidth + 2, 5);
+  ctx.fillStyle = c.bossBarTrack;
+  ctx.fillRect(barX, y + 11, barWidth, 3);
+  ctx.fillStyle = c.weakPointGlow;
+  ctx.fillRect(barX, y + 11, Math.round(barWidth * left), 3);
+}
+
+function getBossCaption(boss) {
+  const c = CONFIG.colors;
+
+  switch (boss.state) {
+    case BOSS_STATE.WINDING_UP:
+      return { text: 'SHOOT THE WEAK POINT', color: c.weakPointGlow, loud: true };
+    case BOSS_STATE.CHARGING:
+      return { text: 'INCOMING', color: c.weakPointOpen, loud: true };
+    case BOSS_STATE.STAGGERED:
+      return { text: 'STAGGERED - HIT HIM', color: c.cash, loud: true };
+    case BOSS_STATE.ATTACKING:
+      return { text: 'HE IS ON THE BARRICADE', color: c.ammoLow, loud: false };
+    default:
+      return boss.enraged
+        ? { text: 'ENRAGED', color: c.weakPointOpen, loud: false }
+        : null;
+  }
+}
 
 // The weapon bar, bottom right: one slot per weapon in the game, always all
 // of them. Locked slots stay visible and empty so you can see what there is

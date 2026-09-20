@@ -186,6 +186,15 @@ function runMenu(rowCount, topY, onNudge) {
 
 // Number keys pick a weapon, R reloads. Only weapons you own are in the list,
 // so the numbers never leave a gap.
+// A boss on zero health is done: clear him off the floor once, and remember
+// it so the bounty gets paid and he doesn't walk back on tonight.
+function retireBossIfDown(world) {
+  if (!world.boss || world.boss.health > 0) return;
+
+  world.boss = null;
+  world.bossDefeated = true;
+}
+
 function handleWeaponControls() {
   if (consumeReload()) {
     beginReload(world.guard);
@@ -324,6 +333,7 @@ function updatePlaying(deltaSeconds) {
 
   updateGuard(world.guard, world, deltaSeconds);
   updateHires(world, deltaSeconds);
+  retireBossIfDown(world);
   updateScalpers(world, deltaSeconds);
   updateBullets(world, deltaSeconds);
   updateGrenades(world, deltaSeconds);

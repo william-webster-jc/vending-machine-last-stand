@@ -249,10 +249,22 @@ Spend on the barricade itself: reinforced plating, auto-turrets mounted on top, 
 mines in the breach zone, a repair drone that patches it mid-night.
 **Done when:** Your setup is a strategy, and you have a favourite one.
 
-### M17 — Bosses
-**Jace's note (from after M6):** bosses shouldn't only headline whole nights — big
-tanky ones should also turn up *during* an ordinary night as a spike in the assault,
-not just every fifth night. Worth building the boss as an entity that can be dropped into any wave,
+### M17 — Bosses  ☑ *(THE RESELLER done early)*
+**Built: THE RESELLER.** Arrives a fifth of the way into every 5th night, while the
+ordinary assault carries on around him.
+
+His plating shrugs off normal fire (16% damage), so chipping him down doesn't work.
+Every few seconds he rears back to charge and a weak point opens on his chest for
+1.7 seconds. Land 45 damage on it and the charge breaks and he's face-down and fully
+vulnerable for 2.4s. Miss and he slams 70 damage into your barricade. Below half
+health he's enraged: 1.1s windows and more summons.
+
+**Rejected: quick-time events.** A QTE tests reaction to a prompt, which is a
+different skill from the aim-and-position the rest of the game trains, and it has to
+freeze the action to work. The vulnerability window gets the same 'right now!' spike
+using the gun you're already holding.
+
+**Still open:** more bosses, and Jace's original note — Worth building the boss as an entity that can be dropped into any wave,
 then using that for both.
 
 Every 5th night, a named boss with a telegraphed attack pattern and a phase change at

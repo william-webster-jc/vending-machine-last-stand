@@ -16,6 +16,7 @@ import { spawnScalper } from './entities/scalper.js';
 import { GAME_STATE } from './world.js';
 import { calculatePay, getNightlyWages } from './shop.js';
 import { getDifficulty } from './settings.js';
+import { createBoss, updateBoss } from './entities/boss.js';
 
 // How far through the night we are, from 0 at dusk to 1 at full sunrise.
 export function getNightProgress(world) {
@@ -30,6 +31,8 @@ export function updateNight(world, deltaSeconds) {
   }
 
   updateAssault(world, deltaSeconds);
+  updateBossArrival(world);
+  updateBoss(world, deltaSeconds);
 
   if (getNightProgress(world) >= 1) {
     surviveTheNight(world);
@@ -86,6 +89,21 @@ function getSpeedMultiplier(day) {
   return nightly * getDifficulty().speedScale;
 }
 
+// Whether tonight is one of THE RESELLER's nights.
+export function isBossNight(day) {
+  return day % CONFIG.boss.everyNights === 0;
+}
+
+// He doesn't open the night — he walks in part way through, once you've
+// settled into holding the wall. The interruption is the point.
+function updateBossArrival(world) {
+  if (world.boss || world.bossDefeated) return;
+  if (!isBossNight(world.day)) return;
+  if (getNightProgress(world) < CONFIG.boss.arrivesAtProgress) return;
+
+  world.boss = createBoss(world.day);
+}
+
 // -----------------------------------------------------------------------------
 // SUNRISE
 // -----------------------------------------------------------------------------
@@ -95,6 +113,7 @@ function surviveTheNight(world) {
   world.gameOverCountdown = CONFIG.gameOver.restartDelaySeconds;
 
   world.finalStats = {
+    bossDefeated: world.bossDefeated,
     scalpersStopped: world.scalpersStopped,
     secondsSurvived: world.elapsedSeconds,
     scalpersOnFloor: world.scalpers.length,

@@ -111,6 +111,10 @@ export function calculatePay(stats, wages = 0) {
     lines.push(['BARRICADE HELD', cfg.barricadeHeldBonus]);
   }
 
+  if (stats.bossDefeated) {
+    lines.push(['RESELLER BOUNTY', CONFIG.boss.bounty]);
+  }
+
   // Wages come straight off the top. A crew you can't afford is the whole
   // tension of hiring.
   if (wages > 0) {

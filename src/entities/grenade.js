@@ -11,6 +11,7 @@
 
 import { CONFIG } from '../config.js';
 import { getScalperHitBox } from './scalper.js';
+import { getBossHitBox, getWeakPointBox, damageBoss } from './boss.js';
 
 const EXPLOSION_SECONDS = CONFIG.weapons.find((w) => w.id === 'grenades').explosionSeconds;
 
@@ -73,6 +74,26 @@ export function updateGrenades(world, deltaSeconds) {
 }
 
 function explode(world, grenade) {
+  // A grenade landing on the boss counts as a weak point hit if the blast
+  // reaches the open plate — lobbing one into a wind-up is a legitimate,
+  // and very satisfying, way to break a charge.
+  const boss = world.boss;
+  if (boss && boss.health > 0) {
+    const body = getBossHitBox(boss);
+    const centerX = (body.left + body.right) / 2;
+    const centerY = (body.top + body.bottom) / 2;
+
+    if (Math.hypot(centerX - grenade.x, centerY - grenade.y) <= grenade.blastRadius + boss.width / 3) {
+      const weak = getWeakPointBox(boss);
+      const weakX = (weak.left + weak.right) / 2;
+      const weakY = (weak.top + weak.bottom) / 2;
+      const reachedWeakPoint =
+        Math.hypot(weakX - grenade.x, weakY - grenade.y) <= grenade.blastRadius;
+
+      damageBoss(boss, grenade.damage, reachedWeakPoint);
+    }
+  }
+
   // Everything inside the blast takes the full hit. Falling off with distance
   // would be more realistic and much harder to read — at this size you want
   // "was it close enough or not", not a damage gradient.

@@ -13,6 +13,7 @@
 
 import { CONFIG } from '../config.js';
 import { getScalperHitBox, getScalperHeadBox } from './scalper.js';
+import { getBossHitBox, getWeakPointBox, damageBoss } from './boss.js';
 
 // Create one bullet, travelling outward from (x, y) in the given direction.
 // The angle is in radians — 0 points right, and it goes clockwise from there.
@@ -50,10 +51,22 @@ export function updateBullets(world, deltaSeconds) {
     }
 
     // A bullet that connects is used up, whether or not the hit was fatal.
-    if (hitAScalper(bullet, world)) {
+    // The boss is checked first: he's the biggest thing on the floor and
+    // standing in front of his own crowd, so shots should land on him.
+    if (hitTheBoss(bullet, world) || hitAScalper(bullet, world)) {
       bullets.splice(i, 1);
     }
   }
+}
+
+function hitTheBoss(bullet, world) {
+  const boss = world.boss;
+  if (!boss || boss.health <= 0) return false;
+  if (!isOverlapping(bullet, getBossHitBox(boss))) return false;
+
+  const hitWeakPoint = isOverlapping(bullet, getWeakPointBox(boss));
+  damageBoss(boss, bullet.damage, hitWeakPoint);
+  return true;
 }
 
 // Check this bullet against every scalper on the floor. Comparing everything

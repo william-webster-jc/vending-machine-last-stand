@@ -409,6 +409,21 @@ export const CONFIG = {
     guardBoot: '#2b2b35',
     gunMetal: '#4d4d59',
 
+    // The boss
+    bossCoat: '#3b2a52',
+    bossCoatDark: '#261a38',
+    bossSkin: '#d9a070',
+    bossShades: '#151020',
+    bossPlate: '#7d8499',
+    bossPlateDark: '#4c5266',
+    bossCase: '#8a5a32',
+    weakPointIdle: '#5a3040',
+    weakPointOpen: '#ff4d6a',
+    weakPointGlow: '#ffd479',
+    bossBarFill: '#e0407a',
+    bossBarTrack: '#2a1226',
+    bossBarEdge: '#12080f',
+
     // Scalper variants
     bruteHoodie: '#a34fd6',
     bruteHoodieDark: '#6f2fa0',
@@ -695,6 +710,70 @@ export const CONFIG = {
         costGrowth: 35,
       },
     ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // THE BOSS
+  //
+  // THE RESELLER turns up every few nights. He is not a big scalper with more
+  // health — he's a rhythm.
+  //
+  // Ordinary fire barely scratches his plating. The real damage only happens
+  // during the moment he rears back to charge, when a weak point opens on his
+  // chest. So the fight is: survive him, wait for the wind-up, and land the
+  // shot. Miss it and he smashes through your barricade.
+  //
+  // That's the same tension a quick-time event goes for, except you answer it
+  // with the gun you've been using all night rather than a prompt.
+  // ---------------------------------------------------------------------------
+  boss: {
+    name: 'THE RESELLER',
+
+    // He shows up on every Nth night, part way through.
+    everyNights: 5,
+    arrivesAtProgress: 0.22,
+
+    // Health grows with the night he appears on.
+    healthPerNight: 85,
+    sizeScale: 2.6,
+
+    advanceSpeed: 15,
+    chargeSpeed: 135,
+
+    // How much of an ordinary shot gets through his plating. Low on purpose:
+    // chipping him down is not the plan.
+    armorDamageFactor: 0.16,
+
+    // THE TELEGRAPH.
+    // He rears back this often, and the window stays open this long. Landing
+    // enough damage on the weak point in that time interrupts the charge.
+    windupEverySeconds: 6.5,
+    windupSeconds: 1.7,
+    windupSecondsEnraged: 1.1,
+
+    // Weak point hits are worth this many ordinary hits.
+    weakPointMultiplier: 4,
+
+    // Damage that has to land on the weak point within one window to stop him.
+    interruptDamage: 45,
+
+    // How long he's face-down and fully vulnerable after being interrupted.
+    staggerSeconds: 2.4,
+
+    // What a completed charge does to your barricade, and what he does to it
+    // once he's standing there chewing.
+    slamDamage: 70,
+    attackDamagePerSecond: 20,
+
+    // He calls in help while advancing.
+    summonEverySeconds: 7.5,
+    summonCount: 2,
+
+    // Below this much health he's enraged: shorter windows, more summons.
+    enragedAtHealthFraction: 0.5,
+
+    // Paid on top of the night's wages for putting him down.
+    bounty: 260,
   },
 
   // ---------------------------------------------------------------------------
