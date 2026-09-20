@@ -25,6 +25,7 @@ import {
 import { drawWeaponIcon, getIconSize } from './weapon-icons.js';
 import { getShakeOffset, drawParticles } from './juice.js';
 import { getDevRows } from './dev.js';
+import { drawTitleScene } from './title-art.js';
 import { getMousePosition } from './input.js';
 import { GAME_STATE } from './world.js';
 import { getShopRows } from './shop.js';
@@ -59,7 +60,7 @@ export function getDevRowBox(index) {
   };
 }
 export const OPTIONS_MENU_TOP_Y = 74;
-export const TITLE_MENU_TOP_Y = 128;
+export const TITLE_MENU_TOP_Y = 164;
 
 export function drawScene(ctx, world, fps) {
   const nightProgress = getNightProgress(world);
@@ -942,36 +943,51 @@ function drawTitleScreen(ctx, world) {
   const { width } = CONFIG.screen;
   const c = CONFIG.colors;
 
-  drawMenuBackdrop(ctx);
+  // The box art fills the whole screen; the logo and menu sit on top of it.
+  drawTitleScene(ctx, performance.now() / 1000);
 
-  // ---------------------------------------------------------------------
-  // YOUR SPLASH ART GOES HERE.
-  //
-  // Drop a PNG into assets/sprites/ and this block becomes one drawImage
-  // call filling roughly x 0-384, y 10-110. Everything below stays as it is.
-  // Until then, the title is drawn in the game's own pixel font.
-  // ---------------------------------------------------------------------
-  drawText(ctx, 'VENDING MACHINE', width / 2, 26, {
-    color: c.titleMain,
+  drawTitleLogo(ctx, width);
+  drawTitleMenu(ctx, world, width);
+}
+
+// The logo, in the DOOM manner: heavy letters, a hard black keyline, and a
+// drop shadow offset down-right so it looks stamped onto the art rather than
+// printed over it.
+function drawTitleLogo(ctx, width) {
+  const c = CONFIG.colors;
+
+  // A dark plate behind it, so the lettering survives the glow underneath.
+  ctx.fillStyle = 'rgba(6, 7, 12, 0.78)';
+  ctx.fillRect(0, 0, width, 50);
+  ctx.fillStyle = c.gameOverTitle;
+  ctx.fillRect(0, 50, width, 1);
+
+  drawText(ctx, 'VENDING MACHINE', width / 2, 3, {
+    color: '#c8ccd6',
     outlineColor: c.inkOutline,
     bold: true,
-    scale: 3,
+    scale: 2,
     align: 'center',
   });
 
-  drawText(ctx, 'LAST STAND', width / 2, 54, {
-    color: c.titleSub,
+  drawTextWithShadow(ctx, 'LAST STAND', width / 2, 19, {
+    color: c.gameOverTitle,
+    shadowColor: '#3a0a10',
     outlineColor: c.inkOutline,
     bold: true,
     scale: 4,
     align: 'center',
   });
+}
 
-  drawText(ctx, 'NOBODY TOUCHES THE PACKS', width / 2, 100, {
-    color: c.menuItem,
-    outlineColor: c.inkOutline,
-    align: 'center',
-  });
+// The menu sits low and right, clear of the hero, on its own dark band.
+function drawTitleMenu(ctx, world, width) {
+  const c = CONFIG.colors;
+
+  // Semi-transparent, so the horde's silhouettes still show through behind
+  // the menu rather than being cut off by a hard band.
+  ctx.fillStyle = 'rgba(6, 7, 12, 0.6)';
+  ctx.fillRect(0, TITLE_MENU_TOP_Y - 5, width, CONFIG.screen.height);
 
   drawMenu(
     ctx,
@@ -979,11 +995,6 @@ function drawTitleScreen(ctx, world) {
     TITLE_MENU_TOP_Y,
     world.menuIndex,
   );
-
-  drawText(ctx, 'ARROWS + ENTER, OR CLICK', width / 2, 198, {
-    color: c.gameOverDim,
-    align: 'center',
-  });
 }
 
 const INSTRUCTION_LINES = [

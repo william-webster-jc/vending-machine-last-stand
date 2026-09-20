@@ -6,9 +6,12 @@ machine to buy out every pack inside. Hold them off until sunrise. Get paid. Upg
 Do it again, harder.
 
 **Inspiration:** *The Last Stand* for the structure (barricade, night shift, survive
-till dawn, spend the day preparing). *Scott Pilgrim* and *Plants vs Zombies* for the
-look — bright 8-bit, cartoon energy, zero horror. Shooting should feel like a arcade
-cabinet, not a survival sim. DOOM-inspired 8-bit splash art on the title screen.
+till dawn, spend the day preparing). **DOOM for the mood and Plants vs Zombies for
+the enemies** — a dark big-box store at 3am with half the lights out, and a cast of
+shoppers told apart by silhouette and prop rather than by colour. The title screen
+is DOOM box art: guard centre, backlit, gun up, horde clawing in from the bottom.
+
+Scalpers are people, not zombies. The threat is that they're going to BUY something.
 
 **Stack:** HTML5 Canvas + vanilla JavaScript (ES modules), served locally with
 `python3 -m http.server`. No installs, no build step. See CLAUDE.md for how we work.
@@ -29,9 +32,12 @@ the feature loses.
 3. **You can see them coming.** Side-on view, scalpers enter from the right edge with
    room to read their speed and type before they arrive. Never a surprise from
    off-screen — difficulty comes from volume and composition, not ambush.
-4. **Bright, not scary.** 8-bit, saturated palette. Scalpers pop into scattered cards
-   and coins, not gore.
-5. **Every number lives in `config.js`.** Jace redesigns the game's feel by editing
+4. **Dark room, pools of light.** The store is unlit except under the fluorescent
+   fixtures that still work. Contrast does the atmosphere; there is no gore.
+   Scalpers pop into scattered cards, not blood.
+5. **Silhouette first.** At this size an outline reads across a busy room long
+   before a colour does, so every enemy type gets its own shape AND its own prop.
+6. **Every number lives in `config.js`.** Jace redesigns the game's feel by editing
    one file, without touching logic.
 
 ---
