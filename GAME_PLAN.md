@@ -53,15 +53,13 @@ the feature loses.
 
 - The machine is on the **left**, solid, behind you.
 - The **barricade** is a single wall spanning the screen's height, in front of you.
-- **You** patrol the strip between them.
+- **You** patrol a **roomy floor band** between them — full WASD, 8 directions.
 - **Scalpers** stream in from the **right** edge.
 
-**One thing I'm interpreting, flag it if I'm wrong:** you asked for flat side-on
-*and* WASD 8-direction movement. Truly flat means one line, where up/down does
-nothing. So I'm giving the guard's strip a bit of **vertical depth** — a walkable
-floor band you can move up and down within, with side-on profile sprites. You can
-move in all 8 directions, but never past the barricade. If you pictured something
-strictly on-a-line with no vertical movement, say so before M1 and I'll change it.
+**Confirmed:** the space behind the barricade is large enough to actually maneuver
+in — back up, strafe, reposition, and keep shooting the whole time. This isn't a
+tightrope; it's a real patrol area. Side-on profile sprites, full 8-direction
+movement, bounded by the machine behind you and the barricade in front.
 
 ---
 
@@ -285,7 +283,6 @@ Nothing here blocks anything. Keep adding.
 
 Nothing blocking. Noted here so they don't get lost:
 
-- Vertical depth of the guard's walkable strip — see **The view** above
 - How long a pack purchase takes (`packPurchaseSeconds`) — decided by feel at M5
 - Whether ammo/reload exists before M15, or the pistol stays infinite through Phase 1
   *(current plan: infinite pistol through Phase 1, reload arrives with weapons)*
