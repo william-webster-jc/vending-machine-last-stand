@@ -52,7 +52,8 @@ export const CONFIG = {
   // through it. You can never walk past it.
   // ---------------------------------------------------------------------------
   barricade: {
-    x: 204,
+    // Lined up with the gap between the 3rd and 4th windows.
+    x: 149,
     width: 28,
     topY: 92,
     bottomY: 210,
@@ -64,7 +65,7 @@ export const CONFIG = {
   // not your head, because feet are what touch the floor.
   // ---------------------------------------------------------------------------
   guard: {
-    startX: 140,
+    startX: 110,
     startY: 180,
     width: 13,
     height: 26,
