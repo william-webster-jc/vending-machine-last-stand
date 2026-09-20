@@ -68,7 +68,7 @@ export function drawGuard(ctx, guard) {
 function drawArmAndGun(ctx, guard) {
   const c = CONFIG.colors;
   const { armLength } = CONFIG.guard;
-  const { barrelLength } = CONFIG.weapon;
+  const { barrelLength } = CONFIG.guard;
 
   const shoulder = getShoulderPosition(guard);
   const aimX = Math.cos(guard.aimAngle);

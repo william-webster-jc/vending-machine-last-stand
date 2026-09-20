@@ -16,14 +16,18 @@ import { getScalperHitBox } from './scalper.js';
 
 // Create one bullet, travelling outward from (x, y) in the given direction.
 // The angle is in radians — 0 points right, and it goes clockwise from there.
-export function spawnBullet(world, x, y, angle) {
+export function spawnBullet(world, x, y, angle, damage, speed = CONFIG.bullet.speed) {
   world.bullets.push({
     x,
     y,
     // We work out the horizontal and vertical speed ONCE, here at birth,
     // instead of recalculating the angle every frame for every bullet.
-    velocityX: Math.cos(angle) * CONFIG.bullet.speed,
-    velocityY: Math.sin(angle) * CONFIG.bullet.speed,
+    velocityX: Math.cos(angle) * speed,
+    velocityY: Math.sin(angle) * speed,
+
+    // Carried on the bullet rather than looked up on impact, so a round fired
+    // from the shotgun still does shotgun damage after you've swapped guns.
+    damage,
   });
 }
 
@@ -61,7 +65,7 @@ function hitAScalper(bullet, world) {
     if (scalper.health <= 0) continue;
 
     if (isOverlapping(bullet, getScalperHitBox(scalper))) {
-      scalper.health -= world.stats.bulletDamage;
+      scalper.health -= bullet.damage;
       return true;
     }
   }

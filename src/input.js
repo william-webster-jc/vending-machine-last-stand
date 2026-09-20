@@ -29,6 +29,10 @@ const KEY_BINDINGS = {
   menuLeft: ['ArrowLeft', 'KeyA'],
   menuRight: ['ArrowRight', 'KeyD'],
   back: ['Escape'],
+
+  // Manual reload. You rarely need it, because running dry reloads for you,
+  // but topping up during a lull is the mark of someone who's paying attention.
+  reload: ['KeyR'],
 };
 
 // Every key currently being held down, by its physical position on the keyboard.
@@ -48,6 +52,9 @@ const pendingDigits = [];
 // Menu keypresses waiting to be handled, oldest first.
 const MENU_ACTIONS = ['menuUp', 'menuDown', 'menuLeft', 'menuRight', 'back'];
 const pendingMenuActions = [];
+
+// Reload presses since the last check.
+let reloadPresses = 0;
 
 // Confirm presses since the last check.
 //
@@ -77,6 +84,10 @@ window.addEventListener('keydown', (event) => {
 
   if (KEY_BINDINGS.confirm.includes(event.code)) {
     confirmPresses += 1;
+  }
+
+  if (KEY_BINDINGS.reload.includes(event.code)) {
+    reloadPresses += 1;
   }
 
   // Menus need the MOMENT a key goes down, so they're queued up here rather
@@ -210,6 +221,7 @@ export function clearPendingPress() {
   pendingDigits.length = 0;
   pendingMenuActions.length = 0;
   confirmPresses = 0;
+  reloadPresses = 0;
 }
 
 // Menu keypresses since last asked, oldest first. Reading them takes them.
@@ -220,6 +232,13 @@ export function consumeMenuActions() {
 }
 
 // True if confirm was pressed since last asked. Reading it takes it.
+// True if reload was pressed since last asked. Reading it takes it.
+export function consumeReload() {
+  const pressed = reloadPresses > 0;
+  reloadPresses = 0;
+  return pressed;
+}
+
 export function consumeConfirm() {
   const pressed = confirmPresses > 0;
   confirmPresses = 0;

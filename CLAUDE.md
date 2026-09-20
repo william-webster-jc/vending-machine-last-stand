@@ -142,11 +142,18 @@ Folders get created when a milestone actually needs them, not upfront.
 ## Running the game
 
 ```bash
-python3 -m http.server 8000
+python3 serve.py
 ```
 Then open **http://localhost:8000**. Ctrl+C in the terminal to stop it.
 
-(This machine has no Node.js installed and doesn't need it. `python3` ships with macOS.)
+Use `serve.py`, NOT `python3 -m http.server`. They both serve the game, but
+the plain one lets your browser cache files — so you edit something, refresh,
+and get shown the OLD version. That cost us a long debugging detour once
+already. `serve.py` tells the browser never to cache, so a refresh always
+gives you exactly what's on disk.
+
+(This machine has no Node.js installed and doesn't need it. `python3` ships
+with macOS.)
 
 ---
 

@@ -12,6 +12,8 @@ import { drawBarricade } from './entities/barricade.js';
 import { drawGuard } from './entities/guard-art.js';
 import { drawScalper } from './entities/scalper-art.js';
 import { drawBullets } from './entities/bullet.js';
+import { drawGrenades, drawExplosions } from './entities/grenade.js';
+import { getWeapon, getRoundsLeft, isReloading, getReloadProgress } from './weapons.js';
 import { getMousePosition } from './input.js';
 import { GAME_STATE } from './world.js';
 import { getShopRows } from './shop.js';
@@ -46,11 +48,17 @@ export function drawScene(ctx, world, fps) {
 
   // Bullets go on top of the barricade, because you're shooting OVER your own
   // wall at whatever is on the far side of it.
+  drawGrenades(ctx, world);
   drawBullets(ctx, world);
+  drawExplosions(ctx, world);
 
   // Warm dawn light over the whole mall, so the room brightens along with the
   // sky instead of staying pitch dark behind a sunrise-coloured window.
   drawDawnWash(ctx, nightProgress);
+
+  if (world.state === GAME_STATE.PLAYING || world.state === GAME_STATE.PAUSED) {
+    drawAmmoReadout(ctx, world);
+  }
 
   if (world.nightBannerTimer > 0 && world.state === GAME_STATE.PLAYING) {
     drawNightBanner(ctx, world);
@@ -349,6 +357,69 @@ function drawNightSurvivedScreen(ctx, world) {
 // TITLE, PAUSE, INSTRUCTIONS AND OPTIONS
 // =============================================================================
 
+// The gun in your hands and what's left in it, bottom right.
+//
+// Rounds are drawn as individual ticks rather than a number, because at a
+// glance "nearly empty" is what matters, not the exact count. Above about
+// twenty rounds that stops being readable, so those fall back to a figure.
+function drawAmmoReadout(ctx, world) {
+  const { width, height } = CONFIG.screen;
+  const c = CONFIG.colors;
+  const guard = world.guard;
+  const weapon = getWeapon(guard.weaponId);
+  const rounds = getRoundsLeft(guard);
+
+  const right = width - 5;
+  const baseY = height - 22;
+
+  drawText(ctx, weapon.name, right, baseY, {
+    color: c.ammoFull,
+    outlineColor: c.inkOutline,
+    bold: true,
+    align: 'right',
+  });
+
+  if (isReloading(guard)) {
+    const barWidth = 46;
+    const barX = right - barWidth;
+    const barY = baseY + 11;
+
+    ctx.fillStyle = c.inkOutline;
+    ctx.fillRect(barX - 1, barY - 1, barWidth + 2, 5);
+    ctx.fillStyle = c.reloadBarTrack;
+    ctx.fillRect(barX, barY, barWidth, 3);
+    ctx.fillStyle = c.reloadBar;
+    ctx.fillRect(barX, barY, Math.round(barWidth * getReloadProgress(guard)), 3);
+
+    drawText(ctx, 'RELOADING', right - barWidth - 4, baseY + 9, {
+      color: c.reloadBar,
+      outlineColor: c.inkOutline,
+      align: 'right',
+    });
+    return;
+  }
+
+  const lowThreshold = Math.max(1, Math.ceil(weapon.magazineSize * 0.25));
+  const color = rounds === 0 ? c.ammoEmpty : rounds <= lowThreshold ? c.ammoLow : c.ammoFull;
+
+  if (weapon.magazineSize <= 20) {
+    for (let i = 0; i < weapon.magazineSize; i++) {
+      const x = right - 3 - i * 4;
+      ctx.fillStyle = c.inkOutline;
+      ctx.fillRect(x - 1, baseY + 10, 4, 7);
+      ctx.fillStyle = i < rounds ? color : c.reloadBarTrack;
+      ctx.fillRect(x, baseY + 11, 2, 5);
+    }
+  } else {
+    drawText(ctx, `${rounds} / ${weapon.magazineSize}`, right, baseY + 11, {
+      color,
+      outlineColor: c.inkOutline,
+      bold: true,
+      align: 'right',
+    });
+  }
+}
+
 // Menu screens get their own backdrop — a checked field, like the reference —
 // rather than a dimmed view of the mall. A menu should read as a menu, not as
 // the game with the lights turned down.
@@ -566,12 +637,7 @@ function drawShopScreen(ctx, world) {
   ctx.fillStyle = c.shopVeil;
   ctx.fillRect(0, 0, width, CONFIG.screen.height);
 
-  drawText(ctx, `DAY ${profile.day} - THE MALL IS OPEN`, width / 2, 10, {
-    color: c.gameOverDim,
-    align: 'center',
-  });
-
-  drawText(ctx, 'SUPPLY RUN', width / 2, 22, {
+  drawText(ctx, 'SUPPLY RUN', width / 2, 6, {
     color: c.titleMain,
     outlineColor: c.inkOutline,
     bold: true,
@@ -579,32 +645,46 @@ function drawShopScreen(ctx, world) {
     align: 'center',
   });
 
-  drawText(ctx, `CASH  ${profile.cash}`, width / 2, 42, {
+  drawText(ctx, `DAY ${profile.day}`, 30, 24, {
+    color: c.gameOverDim,
+    outlineColor: c.inkOutline,
+  });
+  drawText(ctx, `CASH ${profile.cash}`, width - 30, 24, {
     color: c.cash,
-    align: 'center',
+    outlineColor: c.inkOutline,
+    bold: true,
+    align: 'right',
   });
 
   const rows = getShopRows(profile);
   rows.forEach((row, index) => drawShopRow(ctx, row, index, world));
 
-  drawText(ctx, 'CLICK OR PRESS 1-5 TO BUY', width / 2, 186, {
+  const lastRow = getShopRowBox(rows.length - 1);
+  drawText(ctx, `CLICK OR PRESS 1-${rows.length} TO BUY`, width / 2, lastRow.y + 24, {
     color: c.gameOverHint,
+    outlineColor: c.inkOutline,
     align: 'center',
   });
-  drawText(ctx, `ENTER - START NIGHT ${profile.day}`, width / 2, 198, {
+  drawText(ctx, `ENTER - START NIGHT ${profile.day}`, width / 2, lastRow.y + 34, {
     color: c.gameOverText,
+    outlineColor: c.inkOutline,
     align: 'center',
   });
 }
 
 // Where each shop row sits. The drawing code and the click handling both call
 // this, so a row can never be drawn somewhere you can't click it.
+// The shop now lists repair, three weapons and four upgrades, so rows are
+// tight. Both the drawing and the clicking read these same numbers.
+const SHOP_ROW_TOP = 36;
+const SHOP_ROW_SPACING = 20;
+
 export function getShopRowBox(index) {
   return {
-    x: 46,
-    y: 58 + index * 24,
-    width: CONFIG.screen.width - 92,
-    height: 22,
+    x: 30,
+    y: SHOP_ROW_TOP + index * SHOP_ROW_SPACING,
+    width: CONFIG.screen.width - 60,
+    height: 18,
   };
 }
 
@@ -624,21 +704,21 @@ function drawShopRow(ctx, row, index, world) {
   const detailColor = isSelected ? '#ffd8e8' : c.shopBlurb;
 
   // The number you'd press for this row.
-  drawText(ctx, `${index + 1}`, box.x + 4, box.y + 3, {
+  drawText(ctx, `${index + 1}`, box.x + 3, box.y + 1, {
     color: isSelected ? '#ffffff' : c.gameOverDim,
     outlineColor: c.inkOutline,
   });
 
-  drawText(ctx, row.name, box.x + 13, box.y + 3, {
+  drawText(ctx, row.name, box.x + 12, box.y + 1, {
     color: nameColor,
     outlineColor: c.inkOutline,
     bold: true,
   });
 
-  drawText(ctx, row.detail, box.x + 13, box.y + 13, { color: detailColor });
+  drawText(ctx, row.detail, box.x + 12, box.y + 10, { color: detailColor });
 
   // Price on the right, red when you can't afford it.
-  const priceX = box.x + box.width - 5;
+  const priceX = box.x + box.width - 4;
   const priceText = row.maxed ? row.maxedLabel : `${row.cost}`;
   const priceColor = row.maxed
     ? c.shopMaxed
@@ -646,7 +726,7 @@ function drawShopRow(ctx, row, index, world) {
       ? c.cash
       : c.cashShort;
 
-  drawText(ctx, priceText, priceX, box.y + 7, {
+  drawText(ctx, priceText, priceX, box.y + 5, {
     color: isSelected && !row.maxed ? '#ffffff' : priceColor,
     outlineColor: c.inkOutline,
     bold: true,

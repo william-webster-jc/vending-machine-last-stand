@@ -13,6 +13,8 @@ import { CONFIG } from './config.js';
 import { drawScene } from './render.js';
 import { updateGuard } from './entities/guard.js';
 import { updateBullets } from './entities/bullet.js';
+import { updateGrenades } from './entities/grenade.js';
+import { getOwnedWeapons, beginReload, switchWeapon } from './weapons.js';
 import { updateScalpers } from './entities/scalper.js';
 import { updateMachine } from './entities/machine.js';
 import { createWorld, GAME_STATE } from './world.js';
@@ -38,6 +40,7 @@ import {
   getMousePosition,
   consumeConfirm,
   consumeMenuActions,
+  consumeReload,
 } from './input.js';
 
 const canvas = document.getElementById('game');
@@ -180,6 +183,20 @@ function runMenu(rowCount, topY, onNudge) {
   return result;
 }
 
+// Number keys pick a weapon, R reloads. Only weapons you own are in the list,
+// so the numbers never leave a gap.
+function handleWeaponControls() {
+  if (consumeReload()) {
+    beginReload(world.guard);
+  }
+
+  const owned = getOwnedWeapons(profile);
+  for (const digit of consumeDigits()) {
+    const weapon = owned[digit - 1];
+    if (weapon) switchWeapon(world.guard, weapon.id);
+  }
+}
+
 function pauseShift() {
   world.state = GAME_STATE.PAUSED;
   world.menuIndex = 0;
@@ -300,11 +317,14 @@ function updatePlaying(deltaSeconds) {
     return;
   }
 
+  handleWeaponControls();
+
   updateNight(world, deltaSeconds);
 
   updateGuard(world.guard, world, deltaSeconds);
   updateScalpers(world, deltaSeconds);
   updateBullets(world, deltaSeconds);
+  updateGrenades(world, deltaSeconds);
   updateMachine(world, deltaSeconds);
 
   // The night can end inside updateNight or updateMachine. If it just did,

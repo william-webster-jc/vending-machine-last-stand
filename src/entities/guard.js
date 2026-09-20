@@ -12,11 +12,20 @@
 import { CONFIG } from '../config.js';
 import { getMoveDirection, getMousePosition, isFireHeld } from '../input.js';
 import { spawnBullet } from './bullet.js';
+import { throwGrenade } from './grenade.js';
 import { getBarricadeBlockLine } from './barricade.js';
+import {
+  getWeapon,
+  getRoundsLeft,
+  isReloading,
+  beginReload,
+  updateReload,
+} from '../weapons.js';
 
 export function updateGuard(guard, world, deltaSeconds) {
   updateAim(guard);
   updateMovement(guard, world, deltaSeconds);
+  updateReload(guard, deltaSeconds);
   updateFiring(guard, world, deltaSeconds);
 }
 
@@ -51,7 +60,7 @@ export function getShoulderPosition(guard) {
 // leave the gun rather than sprouting out of his chest.
 function getMuzzlePosition(guard) {
   const shoulder = getShoulderPosition(guard);
-  const reach = CONFIG.guard.armLength + CONFIG.weapon.barrelLength;
+  const reach = CONFIG.guard.armLength + CONFIG.guard.barrelLength;
 
   return {
     x: shoulder.x + Math.cos(guard.aimAngle) * reach,
@@ -70,22 +79,66 @@ function getMuzzlePosition(guard) {
 function updateFiring(guard, world, deltaSeconds) {
   guard.fireCooldown -= deltaSeconds;
 
+  const weapon = getWeapon(guard.weaponId);
+
   if (!isFireHeld()) {
     guard.hasFiredThisClick = false;
     return;
   }
 
-  // With autoFire off, one click means exactly one bullet no matter how long
-  // you hold the button down.
-  if (!CONFIG.weapon.autoFire && guard.hasFiredThisClick) return;
+  // Semi-automatic weapons need a fresh click per shot. The shotgun and the
+  // grenades are deliberately not something you can hold down.
+  if (!weapon.autoFire && guard.hasFiredThisClick) return;
 
+  if (isReloading(guard)) return;
   if (guard.fireCooldown > 0) return;
 
-  const muzzle = getMuzzlePosition(guard);
-  spawnBullet(world, muzzle.x, muzzle.y, guard.aimAngle);
+  // Out of ammo: pulling the trigger starts a reload instead of firing. It's
+  // what you'd do anyway, and it saves you fumbling for the key mid-fight.
+  if (getRoundsLeft(guard) <= 0) {
+    beginReload(guard);
+    guard.hasFiredThisClick = true;
+    return;
+  }
 
-  guard.fireCooldown = world.stats.fireIntervalSeconds;
+  fireOnce(guard, world, weapon);
+}
+
+function fireOnce(guard, world, weapon) {
+  const muzzle = getMuzzlePosition(guard);
+  const damage = Math.round(weapon.damage * world.stats.damageMultiplier);
+
+  if (weapon.kind === 'grenade') {
+    // Thrown AT the crosshair, not merely in its direction.
+    const target = getMousePosition();
+    throwGrenade(world, muzzle.x, muzzle.y, target.x, target.y, weapon, damage);
+  } else {
+    // A shotgun is just several bullets fired at once, each nudged off the
+    // aim line by a random amount. That's the whole difference between it and
+    // the pistol — no separate shotgun code anywhere.
+    for (let i = 0; i < weapon.pelletsPerShot; i++) {
+      spawnBullet(world, muzzle.x, muzzle.y, applySpread(guard.aimAngle, weapon), damage);
+    }
+  }
+
+  guard.magazines[guard.weaponId] -= 1;
+  guard.fireCooldown = weapon.fireIntervalSeconds * world.stats.fireIntervalMultiplier;
   guard.hasFiredThisClick = true;
+
+  // Firing the last round starts the reload straight away, so the delay
+  // begins immediately rather than waiting for you to notice.
+  if (getRoundsLeft(guard) <= 0) {
+    beginReload(guard);
+  }
+}
+
+// Nudge a shot off the aim line by a random amount inside the weapon's cone.
+// Spread is what makes the uzi a close-range tool and the pistol a precise one.
+function applySpread(aimAngle, weapon) {
+  if (weapon.spreadDegrees <= 0) return aimAngle;
+
+  const spreadRadians = (weapon.spreadDegrees * Math.PI) / 180;
+  return aimAngle + (Math.random() - 0.5) * spreadRadians;
 }
 
 // -----------------------------------------------------------------------------

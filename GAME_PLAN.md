@@ -229,12 +229,13 @@ Distinct types, each demanding a different response:
 - **Line Cutter** — shoves other scalpers ahead of it, disrupting your aim priority
 **Done when:** A night's *composition* changes how you play it, not just its size.
 
-### M15 — Weapons
-Pistol (infinite), shotgun (crowds at the barricade), SMG (dps, ammo hungry), railgun
-(pierces a whole line of them). Number keys to swap. Ammo and reload become real.
-**Done when:** You have a favourite and strong opinions about the others.
-**The one new idea:** *Data-driven design* — a new weapon is a new entry in a list,
-not new code.
+### M15 — More weapons  ☑ *(core done early)*
+**Done:** ammo and reload, plus pistol / shotgun / uzi / grenades, bought from the
+shop and swapped with the number keys. Every weapon is an entry in a list, so the
+rest of this milestone is just adding entries.
+
+**Still open:** a railgun that pierces a whole line, an ammo economy (buying reserve
+rounds rather than infinite magazines), and weapon-specific upgrades.
 
 ### M16 — Barricade tech and traps
 Spend on the barricade itself: reinforced plating, auto-turrets mounted on top, trip
@@ -314,10 +315,10 @@ Nothing blocking. Noted here so they don't get lost:
 
 Phase 1 in progress. Next up: **M9 — Interviews: hire help**.
 
-**Queued from Jace's feedback:** a reload mechanic. The pistol currently fires
-six rounds a second forever, which feels like a machine gun. Ammo and reload are
-scheduled for M15 with the other weapons, but this is a *feel* problem rather than
-a feature, so it's worth pulling forward as its own short milestone.
+**M15 (Weapons) was pulled forward and is now done** — ammo, reload, and the
+pistol / shotgun / uzi / grenades roster all landed early at Jace's request.
+Phase 3 keeps its slot for weapon *depth* (more exotic guns, ammo economy)
+rather than the basics.
 
 | Milestone | Status |
 |---|---|

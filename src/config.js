@@ -172,24 +172,102 @@ export const CONFIG = {
 
     // How far the arm reaches out from the shoulder, in pixels.
     armLength: 6,
+
+    // How far past the hand the barrel sticks out. Shots are born here, so
+    // they appear to leave the gun rather than the guard's chest.
+    barrelLength: 5,
   },
 
   // ---------------------------------------------------------------------------
   // THE WEAPON — the pistol you start the night with. More guns arrive in M15.
   // ---------------------------------------------------------------------------
-  weapon: {
-    // Seconds between shots. Smaller = faster gun. 0.16 is about 6 shots a
-    // second, which is fast enough to feel good and slow enough to aim.
-    fireIntervalSeconds: 0.16,
+  // A short delay after swapping weapons, so you can't dodge a reload by
+  // flicking between two guns.
+  weaponSwapSeconds: 0.22,
 
-    // Hold the mouse button to keep firing. Set to false and every shot needs
-    // its own click.
-    autoFire: true,
+  // ---------------------------------------------------------------------------
+  // WEAPONS
+  //
+  // Every gun is an entry in this list. Adding a fifth one is a new entry and
+  // nothing else — no new code. The tradeoffs come entirely from these
+  // numbers, so this is where you balance the whole arsenal.
+  //
+  //   magazineSize        rounds before you have to reload
+  //   reloadSeconds       how long that takes, stood there defenceless
+  //   fireIntervalSeconds delay between shots
+  //   damage              PER PELLET, before your damage upgrade
+  //   pelletsPerShot      shotguns fire several at once
+  //   spreadDegrees       how wide the cone is; accuracy, basically
+  // ---------------------------------------------------------------------------
+  weapons: [
+    {
+      id: 'pistol',
+      name: 'PISTOL',
+      blurb: 'RELIABLE. NEVER LEAVES YOU.',
+      magazineSize: 12,
+      reloadSeconds: 1.1,
+      fireIntervalSeconds: 0.16,
+      damage: 10,
+      pelletsPerShot: 1,
+      spreadDegrees: 2,
+      bulletSpeed: 420,
+      autoFire: true,
+      cost: 0,
+      kind: 'gun',
+    },
+    {
+      id: 'shotgun',
+      name: 'SHOTGUN',
+      blurb: 'CLEARS THE BARRICADE',
+      magazineSize: 6,
+      reloadSeconds: 1.9,
+      fireIntervalSeconds: 0.62,
+      damage: 8,
+      pelletsPerShot: 6,
+      spreadDegrees: 18,
+      bulletSpeed: 370,
+      autoFire: false,
+      cost: 220,
+      kind: 'gun',
+    },
+    {
+      id: 'uzi',
+      name: 'UZI',
+      blurb: 'FAST AND SLOPPY',
+      magazineSize: 32,
+      reloadSeconds: 2.3,
+      fireIntervalSeconds: 0.055,
+      damage: 5,
+      pelletsPerShot: 1,
+      spreadDegrees: 11,
+      bulletSpeed: 460,
+      autoFire: true,
+      cost: 260,
+      kind: 'gun',
+    },
+    {
+      id: 'grenades',
+      name: 'GRENADES',
+      blurb: 'LOBBED. HITS A WHOLE CROWD.',
+      magazineSize: 3,
+      reloadSeconds: 3.4,
+      fireIntervalSeconds: 0.9,
+      damage: 30,
+      pelletsPerShot: 1,
+      spreadDegrees: 0,
+      autoFire: false,
+      cost: 300,
+      kind: 'grenade',
 
-    // How far past the hand the barrel sticks out — bullets are born here, so
-    // they appear to leave the gun rather than the guard's chest.
-    barrelLength: 5,
-  },
+      // Grenade-only. It's lobbed rather than fired, so it travels at a
+      // throwable pace, arcs through the air, and goes off on a fuse.
+      throwSpeed: 165,
+      fuseSeconds: 0.9,
+      blastRadius: 34,
+      arcHeight: 22,
+      explosionSeconds: 0.28,
+    },
+  ],
 
   // ---------------------------------------------------------------------------
   // BULLETS
@@ -202,8 +280,9 @@ export const CONFIG = {
     width: 4,
     height: 2,
 
-    // How much health one bullet takes off a scalper. At 10 against 20 health,
-    // every scalper needs exactly two hits.
+    // The REFERENCE damage used to work out how much health a scalper has.
+    // It matches the starting pistol, which is what 'three bullets to kill'
+    // is measured against. Each weapon carries its own real damage.
     damage: 10,
 
     // How far off-screen a bullet gets before we throw it away. A little
@@ -321,6 +400,17 @@ export const CONFIG = {
     gameOverText: '#f4f0e4',
     gameOverDim: '#9a93ad',
     gameOverHint: '#7ae0b0',
+
+    // Ammo readout and grenades
+    ammoFull: '#e8ecf5',
+    ammoLow: '#f0a03c',
+    ammoEmpty: '#e05454',
+    reloadBar: '#3fb4f0',
+    reloadBarTrack: '#1b2a52',
+    grenadeBody: '#4a7a3a',
+    grenadeTop: '#2e4d28',
+    blastInner: '#fff3c4',
+    blastOuter: '#f08a3c',
 
     // Bullets and crosshair
     bulletCore: '#fff3a8',
@@ -471,7 +561,10 @@ export const CONFIG = {
         id: 'damage',
         name: 'HEAVIER ROUNDS',
         blurb: 'BULLET DAMAGE',
-        effectPerLevel: 4,
+        // A PERCENTAGE rather than a flat bonus, so it helps every weapon
+        // equally. A flat +4 would be a 40% boost to the pistol and an 80%
+        // boost to the uzi's weaker rounds.
+        effectPerLevel: 0.18,
         maxLevel: 5,
         baseCost: 60,
         costGrowth: 40,
@@ -525,7 +618,7 @@ export const CONFIG = {
   debug: {
     showDebug: true,
     fpsSampleSeconds: 0.5,
-    buildLabel: 'M8 - TITLE SCREEN',
+    buildLabel: 'WEAPONS + RELOAD',
 
     // Shows your exact position on screen. Handy while testing movement.
     showPosition: true,

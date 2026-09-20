@@ -13,6 +13,7 @@
 import { CONFIG } from './config.js';
 import { createBarricade } from './entities/barricade.js';
 import { getStats } from './shop.js';
+import { createMagazines, getStartingWeaponId } from './weapons.js';
 
 export const GAME_STATE = {
   TITLE: 'title',
@@ -64,10 +65,21 @@ export function createWorld(profile) {
       // Counts down to zero between shots. See updateFiring in guard.js.
       fireCooldown: 0,
       hasFiredThisClick: false,
+
+      // Which gun is in your hands, how many rounds are in each weapon's
+      // magazine, and how long is left on a reload. Every weapon starts the
+      // night loaded.
+      weaponId: getStartingWeaponId(),
+      magazines: createMagazines(),
+      reloadTimer: 0,
     },
 
     // Every bullet currently in the air.
     bullets: [],
+
+    // Grenades in the air, and the blasts they leave behind.
+    grenades: [],
+    explosions: [],
 
     // Every scalper on the floor right now.
     scalpers: [],

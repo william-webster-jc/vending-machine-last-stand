@@ -12,6 +12,7 @@
 
 import { CONFIG } from './config.js';
 import { getDifficulty } from './settings.js';
+import { getWeapon, ownsWeapon } from './weapons.js';
 
 export function createProfile() {
   return {
@@ -20,6 +21,9 @@ export function createProfile() {
 
     // upgrade id -> how many levels you've bought.
     upgradeLevels: {},
+
+    // Weapons you've bought. The pistol isn't in here — you always have it.
+    ownedWeapons: [],
 
     // How much barricade health you carry INTO tonight. null means "full",
     // which is how a brand new career starts.
@@ -56,11 +60,17 @@ export function getStats(profile) {
         getDifficulty().wallScale,
     ),
 
-    bulletDamage: CONFIG.bullet.damage + level('damage') * effect('damage'),
+    // A multiplier every weapon's own damage is scaled by, rather than a flat
+    // bonus that would help the uzi's weak rounds far more than the pistol's.
+    damageMultiplier: 1 + level('damage') * effect('damage'),
 
-    // Multiplied, not subtracted — see the note in config.js.
-    fireIntervalSeconds:
-      CONFIG.weapon.fireIntervalSeconds * Math.pow(effect('firerate'), level('firerate')),
+    // A multiplier on whatever weapon you're holding, rather than one fixed
+    // delay — the uzi and the shotgun fire at wildly different rates, so the
+    // upgrade has to scale each of them rather than replace them.
+    //
+    // Multiplied, not subtracted, so it can never reach zero and fire an
+    // infinite number of rounds in a single frame.
+    fireIntervalMultiplier: Math.pow(effect('firerate'), level('firerate')),
 
     moveSpeed: CONFIG.guard.speed + level('boots') * effect('boots'),
   };
@@ -135,6 +145,22 @@ export function getShopRows(profile) {
     affordable: repairCost > 0 && profile.cash >= repairCost,
   });
 
+  // Weapons you don't own yet, offered for sale.
+  for (const weapon of CONFIG.weapons) {
+    if (weapon.cost === 0) continue;
+
+    const owned = ownsWeapon(profile, weapon.id);
+    rows.push({
+      id: `weapon:${weapon.id}`,
+      name: weapon.name,
+      detail: weapon.blurb,
+      cost: weapon.cost,
+      maxed: owned,
+      maxedLabel: 'OWNED',
+      affordable: !owned && profile.cash >= weapon.cost,
+    });
+  }
+
   for (const item of CONFIG.economy.items) {
     const level = getUpgradeLevel(profile, item.id);
     const cost = getUpgradeCost(profile, item);
@@ -158,6 +184,7 @@ export function getShopRows(profile) {
 // caller knows whether to play a sound or shake the screen.
 export function buyUpgrade(profile, id) {
   if (id === 'repair') return buyRepair(profile);
+  if (id.startsWith('weapon:')) return buyWeapon(profile, id.slice(7));
 
   const item = findItem(id);
   if (!item) return false;
@@ -174,6 +201,17 @@ export function buyUpgrade(profile, id) {
   // Reinforcing raises the ceiling but doesn't patch the holes — the new
   // health has to be repaired like any other missing health. Otherwise
   // reinforcing would quietly be a free repair too.
+  return true;
+}
+
+function buyWeapon(profile, weaponId) {
+  const weapon = getWeapon(weaponId);
+
+  if (ownsWeapon(profile, weaponId)) return false;
+  if (profile.cash < weapon.cost) return false;
+
+  profile.cash -= weapon.cost;
+  profile.ownedWeapons.push(weaponId);
   return true;
 }
 
