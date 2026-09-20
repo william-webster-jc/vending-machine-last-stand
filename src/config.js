@@ -58,6 +58,58 @@ export const CONFIG = {
     topY: 92,
     bottomY: 210,
     plankHeight: 9,
+
+    // How much punishment the wall takes before it breaks open. This is
+    // effectively your health bar for the whole night.
+    maxHealth: 120,
+
+    // Keeps YOU penned in even after the wall is smashed. Scalpers always come
+    // through a breach; this is only about whether you can push forward onto
+    // their side of it. Set false to let yourself advance into the rubble.
+    blocksGuardWhenBroken: true,
+
+    healthBarWidth: 40,
+    healthBarHeight: 4,
+    healthBarOffsetY: 12,
+  },
+
+  // ---------------------------------------------------------------------------
+  // SCALPERS — they walk in from the right and tear at the barricade.
+  // Different scalper types arrive in M14; for now they're all the same.
+  // ---------------------------------------------------------------------------
+  scalper: {
+    width: 13,
+    height: 26,
+
+    maxHealth: 20,
+
+    // Pixels per second walking left. The approach runway is about 207px, so
+    // at 26 they take roughly 8 seconds to reach the wall — long enough to
+    // watch them come and decide what to do about it.
+    speed: 26,
+
+    // Each scalper's speed is nudged up or down by up to this fraction, so a
+    // group spreads out into a ragged line instead of marching in lockstep.
+    speedVariation: 0.3,
+
+    // How much barricade health they chew through per second, once they're on
+    // it. At 6, a single scalper takes 20 seconds to break a full wall.
+    attackDamagePerSecond: 6,
+
+    // Scalpers shove each other apart rather than standing in the same spot.
+    // separationY is how close in DEPTH two of them have to be before they
+    // count as sharing a spot at all — stand far enough apart front-to-back
+    // and you can overlap on screen quite happily.
+    separationX: 9,
+    separationY: 7,
+
+    // How close they get before they stop and start attacking.
+    attackReach: 3,
+
+    // TEMPORARY for M4: a steady trickle so there's something to shoot.
+    // The real wave system replaces this in M6.
+    spawnIntervalSeconds: 3.2,
+    spawnMargin: 20,
   },
 
   // ---------------------------------------------------------------------------
@@ -120,6 +172,10 @@ export const CONFIG = {
     width: 4,
     height: 2,
 
+    // How much health one bullet takes off a scalper. At 10 against 20 health,
+    // every scalper needs exactly two hits.
+    damage: 10,
+
     // How far off-screen a bullet gets before we throw it away. A little
     // margin stops them visibly blinking out right at the edge.
     despawnMargin: 12,
@@ -170,6 +226,22 @@ export const CONFIG = {
     guardBoot: '#2b2b35',
     gunMetal: '#4d4d59',
 
+    // Scalpers — bright and cartoonish, never menacing
+    scalperHoodie: '#8a54e0',
+    scalperHoodieDark: '#6234b4',
+    scalperSkin: '#d99a6c',
+    scalperPants: '#39394d',
+    scalperShoe: '#ececf2',
+    scalperBackpack: '#e0547a',
+    scalperPhone: '#5ad6e8',
+
+    // Health bars
+    healthBarOutline: '#1a1522',
+    healthBarEmpty: '#453a4d',
+    healthBarGood: '#5fd65f',
+    healthBarWarning: '#e8c34a',
+    healthBarCritical: '#e05454',
+
     // Bullets and crosshair
     bulletCore: '#fff3a8',
     bulletEdge: '#f2913c',
@@ -196,7 +268,7 @@ export const CONFIG = {
   debug: {
     showDebug: true,
     fpsSampleSeconds: 0.5,
-    buildLabel: 'M3 - DRAW YOUR WEAPON',
+    buildLabel: 'M4 - SCALPERS',
 
     // Shows your exact position on screen. Handy while testing movement.
     showPosition: true,
@@ -204,5 +276,8 @@ export const CONFIG = {
     // Shows how many bullets are alive right now. If this number climbs and
     // never comes back down, bullets aren't being cleaned up properly.
     showBulletCount: true,
+
+    // Shows how many scalpers are on the floor.
+    showScalperCount: true,
   },
 };

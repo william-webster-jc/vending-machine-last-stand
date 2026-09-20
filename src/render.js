@@ -9,7 +9,8 @@
 import { CONFIG } from './config.js';
 import { drawMachine } from './entities/machine.js';
 import { drawBarricade } from './entities/barricade.js';
-import { drawGuard } from './entities/guard.js';
+import { drawGuard } from './entities/guard-art.js';
+import { drawScalper } from './entities/scalper-art.js';
 import { drawBullets } from './entities/bullet.js';
 import { getMousePosition } from './input.js';
 
@@ -18,8 +19,8 @@ export function drawScene(ctx, world, fps) {
   drawFloor(ctx);
 
   drawMachine(ctx);
-  drawBarricade(ctx);
-  drawGuard(ctx, world.guard);
+  drawBarricade(ctx, world.barricade);
+  drawCharacters(ctx, world);
 
   // Bullets go on top of the barricade, because you're shooting OVER your own
   // wall at whatever is on the far side of it.
@@ -129,6 +130,26 @@ function drawFloor(ctx) {
   ctx.fillRect(0, horizonY, width, 3);
 }
 
+// Everybody standing on the floor, drawn back-to-front.
+//
+// Sorting by y before drawing is what makes depth work: whoever is nearer the
+// camera (larger y) gets painted last, so they appear in front. Without this,
+// a scalper standing behind you could be drawn on top of you.
+function drawCharacters(ctx, world) {
+  const everyone = [
+    { y: world.guard.y, draw: () => drawGuard(ctx, world.guard) },
+  ];
+
+  for (const scalper of world.scalpers) {
+    everyone.push({ y: scalper.y, draw: () => drawScalper(ctx, scalper) });
+  }
+
+  everyone.sort((a, b) => a.y - b.y);
+  for (const character of everyone) {
+    character.draw();
+  }
+}
+
 // An 8-bit crosshair drawn where your mouse is. The real cursor is hidden by
 // CSS, so this is the only pointer you see over the game.
 function drawCrosshair(ctx) {
@@ -166,6 +187,11 @@ function drawDebugReadout(ctx, world, fps) {
 
   if (CONFIG.debug.showBulletCount) {
     ctx.fillText(`bullets ${world.bullets.length}`, 4, 24);
+  }
+
+  if (CONFIG.debug.showScalperCount) {
+    ctx.fillText(`scalpers ${world.scalpers.length}`, 4, 34);
+    ctx.fillText(`stopped ${world.scalpersStopped}`, 4, 44);
   }
 
   ctx.textBaseline = 'bottom';

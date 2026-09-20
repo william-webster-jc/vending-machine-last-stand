@@ -1,8 +1,9 @@
 // =============================================================================
-// guard.js — you, the mall security guard.
+// guard.js — how the security guard behaves. What he LOOKS like is in
+// guard-art.js next door.
 //
-// He walks (M2) and now he aims and shoots (M3). He faces wherever your mouse
-// is, so you can walk one way while covering another.
+// He walks (M2), aims and shoots (M3). He faces wherever your mouse is, so you
+// can walk one way while covering another.
 //
 // IMPORTANT: guard.y is his FEET, not his head. Everything that touches the
 // floor is measured from the feet, which makes depth sorting simple later.
@@ -11,10 +12,11 @@
 import { CONFIG } from '../config.js';
 import { getMoveDirection, getMousePosition, isFireHeld } from '../input.js';
 import { spawnBullet } from './bullet.js';
+import { getBarricadeBlockLine } from './barricade.js';
 
 export function updateGuard(guard, world, deltaSeconds) {
   updateAim(guard);
-  updateMovement(guard, deltaSeconds);
+  updateMovement(guard, world, deltaSeconds);
   updateFiring(guard, world, deltaSeconds);
 }
 
@@ -38,7 +40,7 @@ function updateAim(guard) {
   guard.facing = mouse.x >= guard.x ? 1 : -1;
 }
 
-function getShoulderPosition(guard) {
+export function getShoulderPosition(guard) {
   return {
     x: guard.x,
     y: guard.y - CONFIG.guard.shoulderHeight,
@@ -90,7 +92,7 @@ function updateFiring(guard, world, deltaSeconds) {
 // MOVEMENT
 // -----------------------------------------------------------------------------
 
-function updateMovement(guard, deltaSeconds) {
+function updateMovement(guard, world, deltaSeconds) {
   const { speed, verticalSpeedFactor } = CONFIG.guard;
   const direction = getMoveDirection();
 
@@ -112,7 +114,7 @@ function updateMovement(guard, deltaSeconds) {
   // Move one axis at a time, checking for obstacles after each. Handling them
   // separately is what lets you slide along a wall: if left/right is blocked,
   // your up/down still goes through instead of the whole step being cancelled.
-  moveHorizontally(guard, stepX);
+  moveHorizontally(guard, world, stepX);
   moveVertically(guard, stepY);
 }
 
@@ -137,16 +139,20 @@ function getMachineFloorSpace() {
 }
 
 // Left/right movement, then push back out of anything we walked into.
-function moveHorizontally(guard, stepX) {
+function moveHorizontally(guard, world, stepX) {
   const halfWidth = CONFIG.guard.width / 2;
   const { clearance } = CONFIG.guard;
 
   guard.x += stepX;
 
   // The barricade is a real wall — it blocks you no matter how far forward you
-  // stand. That's the whole point of it.
-  const barricadeLimit = CONFIG.barricade.x - clearance - halfWidth;
+  // stand. That's the whole point of it. Once it's smashed open it may stop
+  // blocking, depending on CONFIG.barricade.blocksGuardWhenBroken.
+  const barricadeLimit = getBarricadeBlockLine(world.barricade) - clearance - halfWidth;
   guard.x = Math.min(guard.x, barricadeLimit);
+
+  // Don't let a broken barricade push you off the right of the screen.
+  guard.x = Math.min(guard.x, CONFIG.screen.width - halfWidth - 2);
 
   // The screen's left edge.
   guard.x = Math.max(guard.x, halfWidth + 2);
@@ -179,113 +185,4 @@ function moveVertically(guard, stepY) {
   if (guard.x < machine.right && guard.y < machine.front) {
     guard.y = machine.front;
   }
-}
-
-// -----------------------------------------------------------------------------
-// DRAWING
-// -----------------------------------------------------------------------------
-
-export function drawGuard(ctx, guard) {
-  const { width, height } = CONFIG.guard;
-  const c = CONFIG.colors;
-
-  const left = Math.round(guard.x - width / 2);
-  const top = Math.round(guard.y - height);
-  const facingRight = guard.facing >= 0;
-
-  drawShadow(ctx, guard);
-
-  // Boots
-  ctx.fillStyle = c.guardBoot;
-  if (facingRight) {
-    ctx.fillRect(left + 2, top + 23, 4, 3);
-    ctx.fillRect(left + 7, top + 23, 5, 3);
-  } else {
-    ctx.fillRect(left + 1, top + 23, 5, 3);
-    ctx.fillRect(left + 7, top + 23, 4, 3);
-  }
-
-  // Legs
-  ctx.fillStyle = c.guardUniformDark;
-  ctx.fillRect(left + 3, top + 18, 3, 5);
-  ctx.fillRect(left + 7, top + 18, 3, 5);
-
-  // Torso
-  ctx.fillStyle = c.guardUniform;
-  ctx.fillRect(left + 2, top + 9, 9, 9);
-
-  // Belt
-  ctx.fillStyle = c.guardCap;
-  ctx.fillRect(left + 2, top + 17, 9, 2);
-
-  // Badge on the chest, on whichever side he's turned toward
-  ctx.fillStyle = c.machineTrim;
-  ctx.fillRect(facingRight ? left + 4 : left + 7, top + 11, 2, 2);
-
-  // Head
-  ctx.fillStyle = c.guardSkin;
-  ctx.fillRect(left + 4, top + 3, 6, 6);
-
-  // Cap. The brim points the way he's facing — at this size it's the clearest
-  // signal of which direction he's turned.
-  ctx.fillStyle = c.guardCap;
-  ctx.fillRect(left + 3, top, 7, 3);
-  ctx.fillRect(facingRight ? left + 10 : left, top + 2, 3, 1);
-
-  drawArmAndGun(ctx, guard);
-}
-
-// The shooting arm, drawn fresh every frame pointing at your mouse.
-//
-// Rather than rotating a picture of an arm — fiddly and blurry at this size —
-// we just work out where the hand ends up and draw a short line of chunky
-// pixels out to it. At 13 pixels tall that reads perfectly.
-function drawArmAndGun(ctx, guard) {
-  const c = CONFIG.colors;
-  const { armLength } = CONFIG.guard;
-  const { barrelLength } = CONFIG.weapon;
-
-  const shoulder = getShoulderPosition(guard);
-  const aimX = Math.cos(guard.aimAngle);
-  const aimY = Math.sin(guard.aimAngle);
-
-  const hand = {
-    x: shoulder.x + aimX * armLength,
-    y: shoulder.y + aimY * armLength,
-  };
-  const muzzle = {
-    x: shoulder.x + aimX * (armLength + barrelLength),
-    y: shoulder.y + aimY * (armLength + barrelLength),
-  };
-
-  drawPixelLine(ctx, shoulder, hand, c.guardUniform);
-  drawPixelLine(ctx, hand, muzzle, c.gunMetal);
-
-  ctx.fillStyle = c.guardSkin;
-  ctx.fillRect(Math.round(hand.x) - 1, Math.round(hand.y) - 1, 2, 2);
-}
-
-// Draws a chunky 2x2 line between two points by stepping along it.
-function drawPixelLine(ctx, from, to, color) {
-  const distance = Math.hypot(to.x - from.x, to.y - from.y);
-  const steps = Math.max(1, Math.ceil(distance));
-
-  ctx.fillStyle = color;
-  for (let step = 0; step <= steps; step++) {
-    const progress = step / steps;
-    const x = Math.round(from.x + (to.x - from.x) * progress);
-    const y = Math.round(from.y + (to.y - from.y) * progress);
-    ctx.fillRect(x - 1, y - 1, 2, 2);
-  }
-}
-
-// A soft oval-ish shadow under the feet, so he's planted on the floor.
-function drawShadow(ctx, guard) {
-  const c = CONFIG.colors;
-  const centerX = Math.round(guard.x);
-  const y = Math.round(guard.y);
-
-  ctx.fillStyle = c.floorContactShadow;
-  ctx.fillRect(centerX - 6, y, 12, 2);
-  ctx.fillRect(centerX - 4, y - 1, 8, 1);
 }

@@ -13,6 +13,8 @@ import { CONFIG } from './config.js';
 import { drawScene } from './render.js';
 import { updateGuard } from './entities/guard.js';
 import { updateBullets } from './entities/bullet.js';
+import { updateScalpers, updateScalperSpawning } from './entities/scalper.js';
+import { createBarricade } from './entities/barricade.js';
 import { attachMouseTo } from './input.js';
 
 const canvas = document.getElementById('game');
@@ -45,6 +47,18 @@ const world = {
   // Every bullet currently in the air. Starts empty, fills as you shoot,
   // empties again as they fly off the screen.
   bullets: [],
+
+  // Every scalper on the floor right now.
+  scalpers: [],
+
+  // Counts down to the next scalper arriving. M6 replaces this with waves.
+  scalperSpawnCountdown: CONFIG.scalper.spawnIntervalSeconds,
+
+  // Running tally of how many you've put down tonight.
+  scalpersStopped: 0,
+
+  // The wall's health, and whether it's been smashed open.
+  barricade: createBarricade(),
 };
 
 // The mouse needs to know about the canvas so it can convert screen positions
@@ -93,7 +107,10 @@ function measureFrameRate(deltaSeconds) {
 // Every new thing we build gets one line here.
 // -----------------------------------------------------------------------------
 function update(deltaSeconds) {
+  updateScalperSpawning(world, deltaSeconds);
+
   updateGuard(world.guard, world, deltaSeconds);
+  updateScalpers(world, deltaSeconds);
   updateBullets(world, deltaSeconds);
 
   measureFrameRate(deltaSeconds);

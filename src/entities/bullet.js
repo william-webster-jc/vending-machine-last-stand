@@ -12,6 +12,7 @@
 // =============================================================================
 
 import { CONFIG } from '../config.js';
+import { getScalperHitBox } from './scalper.js';
 
 // Create one bullet, travelling outward from (x, y) in the given direction.
 // The angle is in radians — 0 points right, and it goes clockwise from there.
@@ -41,8 +42,46 @@ export function updateBullets(world, deltaSeconds) {
 
     if (hasLeftTheScreen(bullet)) {
       bullets.splice(i, 1);
+      continue;
+    }
+
+    // A bullet that connects is used up, whether or not the hit was fatal.
+    if (hitAScalper(bullet, world)) {
+      bullets.splice(i, 1);
     }
   }
+}
+
+// Check this bullet against every scalper on the floor. Comparing everything
+// to everything like this is the simplest way to do collisions, and at a few
+// dozen of each it costs nothing. If we ever had thousands we'd need to be
+// cleverer, but we won't.
+function hitAScalper(bullet, world) {
+  for (const scalper of world.scalpers) {
+    if (scalper.health <= 0) continue;
+
+    if (isOverlapping(bullet, getScalperHitBox(scalper))) {
+      scalper.health -= CONFIG.bullet.damage;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Two rectangles overlap unless one is entirely past the other on some side.
+// It's easier to prove they DON'T touch and flip the answer than to check all
+// the ways they might.
+function isOverlapping(bullet, box) {
+  const bulletRight = bullet.x + CONFIG.bullet.width;
+  const bulletBottom = bullet.y + CONFIG.bullet.height;
+
+  return !(
+    bulletRight < box.left ||
+    bullet.x > box.right ||
+    bulletBottom < box.top ||
+    bullet.y > box.bottom
+  );
 }
 
 function hasLeftTheScreen(bullet) {
