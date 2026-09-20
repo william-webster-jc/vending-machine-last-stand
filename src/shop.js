@@ -11,6 +11,7 @@
 // =============================================================================
 
 import { CONFIG } from './config.js';
+import { getDifficulty } from './settings.js';
 
 export function createProfile() {
   return {
@@ -50,8 +51,10 @@ export function getStats(profile) {
   const level = (id) => getUpgradeLevel(profile, id);
 
   return {
-    barricadeMaxHealth:
-      CONFIG.barricade.maxHealth + level('reinforce') * effect('reinforce'),
+    barricadeMaxHealth: Math.round(
+      (CONFIG.barricade.maxHealth + level('reinforce') * effect('reinforce')) *
+        getDifficulty().wallScale,
+    ),
 
     bulletDamage: CONFIG.bullet.damage + level('damage') * effect('damage'),
 

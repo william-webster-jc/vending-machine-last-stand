@@ -15,6 +15,9 @@ import { createBarricade } from './entities/barricade.js';
 import { getStats } from './shop.js';
 
 export const GAME_STATE = {
+  TITLE: 'title',
+  INSTRUCTIONS: 'instructions',
+  OPTIONS: 'options',
   PLAYING: 'playing',
   GAME_OVER: 'game-over',
   NIGHT_SURVIVED: 'night-survived',
@@ -85,5 +88,8 @@ export function createWorld(profile) {
 
     // Filled in when you lose, so the game over screen has something to show.
     finalStats: null,
+
+    // Which menu row is highlighted, on whichever menu is showing.
+    menuIndex: 0,
   };
 }

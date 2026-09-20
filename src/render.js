@@ -15,6 +15,9 @@ import { drawBullets } from './entities/bullet.js';
 import { getMousePosition } from './input.js';
 import { GAME_STATE } from './world.js';
 import { getShopRows } from './shop.js';
+import { drawText, drawTextWithShadow } from './font.js';
+import { drawMenu } from './menu.js';
+import { settings, getDifficulty } from './settings.js';
 import { mixColors } from './pixel.js';
 import {
   getNightProgress,
@@ -24,6 +27,10 @@ import {
   getDawnWashAlpha,
   getAssaultSize,
 } from './night.js';
+
+export const TITLE_MENU = ['START SHIFT', 'INSTRUCTIONS', 'OPTIONS'];
+export const OPTIONS_MENU_TOP_Y = 96;
+export const TITLE_MENU_TOP_Y = 128;
 
 export function drawScene(ctx, world, fps) {
   const nightProgress = getNightProgress(world);
@@ -47,7 +54,16 @@ export function drawScene(ctx, world, fps) {
     drawNightBanner(ctx, world);
   }
 
-  if (world.state === GAME_STATE.SHOP) {
+  if (world.state === GAME_STATE.TITLE) {
+    drawTitleScreen(ctx, world);
+    drawCrosshair(ctx);
+  } else if (world.state === GAME_STATE.INSTRUCTIONS) {
+    drawInstructionsScreen(ctx);
+    drawCrosshair(ctx);
+  } else if (world.state === GAME_STATE.OPTIONS) {
+    drawOptionsScreen(ctx, world);
+    drawCrosshair(ctx);
+  } else if (world.state === GAME_STATE.SHOP) {
     drawShopScreen(ctx, world);
     drawCrosshair(ctx);
   } else if (world.state === GAME_STATE.NIGHT_SURVIVED) {
@@ -263,24 +279,20 @@ function drawNightBanner(ctx, world) {
 
   ctx.save();
   ctx.globalAlpha = fade;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
 
-  // A hard offset shadow, which is how 8-bit games made text readable over a
-  // busy background without any blurring.
-  ctx.font = '16px monospace';
-  ctx.fillStyle = c.waveBannerShadow;
-  ctx.fillText(`NIGHT ${world.day}`, width / 2 + 1, 53);
-  ctx.fillStyle = c.waveBanner;
-  ctx.fillText(`NIGHT ${world.day}`, width / 2, 52);
+  drawTextWithShadow(ctx, `NIGHT ${world.day}`, width / 2, 46, {
+    color: c.waveBanner,
+    shadowColor: c.waveBannerShadow,
+    scale: 3,
+    align: 'center',
+  });
 
-  ctx.font = '8px monospace';
-  ctx.fillStyle = c.gameOverText;
-  ctx.fillText(`${getAssaultSize(world.day)} SCALPERS INCOMING`, width / 2, 68);
+  drawText(ctx, `${getAssaultSize(world.day)} SCALPERS INCOMING`, width / 2, 72, {
+    color: c.gameOverText,
+    align: 'center',
+  });
 
   ctx.restore();
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
 }
 
 // The screen you earn by surviving until sunrise.
@@ -292,32 +304,184 @@ function drawNightSurvivedScreen(ctx, world) {
   ctx.fillStyle = c.sunriseVeil;
   ctx.fillRect(0, 0, width, height);
 
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  drawText(ctx, 'NIGHT SURVIVED', width / 2, 52, {
+    color: c.sunriseTitle,
+    scale: 2,
+    align: 'center',
+  });
 
-  ctx.font = '16px monospace';
-  ctx.fillStyle = c.sunriseTitle;
-  ctx.fillText('NIGHT SURVIVED', width / 2, 64);
-
-  ctx.font = '8px monospace';
-  ctx.fillStyle = c.gameOverText;
-  ctx.fillText(`THE SUN IS UP. SHIFT ${world.day} IS OVER.`, width / 2, 84);
+  drawText(ctx, `THE SUN IS UP. SHIFT ${world.day} IS OVER.`, width / 2, 76, {
+    color: c.gameOverText,
+    align: 'center',
+  });
 
   // The payslip, itemised, so you can see exactly what playing well earned.
   const payLines = world.payslip.lines.map(([label, amount]) => [label, `${amount}`]);
   drawStatLines(ctx, payLines);
 
-  const totalY = 106 + payLines.length * 12 + 6;
-  ctx.fillStyle = c.cash;
-  ctx.fillText(`TONIGHT'S PAY   ${world.payslip.total}`, width / 2, totalY);
+  const totalY = STAT_FIRST_LINE_Y + payLines.length * STAT_LINE_SPACING + 6;
+  drawText(ctx, `TONIGHT'S PAY`, STAT_LABEL_RIGHT, totalY, {
+    color: c.cash,
+    align: 'right',
+  });
+  drawText(ctx, `${world.payslip.total}`, STAT_VALUE_LEFT, totalY, {
+    color: c.cash,
+  });
 
   if (world.gameOverCountdown <= 0) {
-    ctx.fillStyle = c.gameOverHint;
-    ctx.fillText('PRESS ANY KEY TO COLLECT', width / 2, 176);
+    drawText(ctx, 'PRESS ANY KEY TO COLLECT', width / 2, 176, {
+      color: c.gameOverHint,
+      align: 'center',
+    });
   }
+}
 
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
+// =============================================================================
+// TITLE, INSTRUCTIONS AND OPTIONS
+// =============================================================================
+
+function drawTitleScreen(ctx, world) {
+  const { width } = CONFIG.screen;
+  const c = CONFIG.colors;
+
+  ctx.fillStyle = c.titleVeil;
+  ctx.fillRect(0, 0, width, CONFIG.screen.height);
+
+  // ---------------------------------------------------------------------
+  // YOUR SPLASH ART GOES HERE.
+  //
+  // Drop a PNG into assets/sprites/ and this block becomes one drawImage
+  // call filling roughly x 0-384, y 10-110. Everything below stays as it is.
+  // Until then, the title is drawn in the game's own pixel font.
+  // ---------------------------------------------------------------------
+  drawTextWithShadow(ctx, 'VENDING MACHINE', width / 2, 30, {
+    color: c.titleMain,
+    shadowColor: '#5a2038',
+    scale: 3,
+    align: 'center',
+  });
+
+  drawTextWithShadow(ctx, 'LAST STAND', width / 2, 58, {
+    color: c.titleSub,
+    shadowColor: '#2a1230',
+    scale: 4,
+    align: 'center',
+  });
+
+  ctx.fillStyle = c.titleRule;
+  ctx.fillRect(70, 100, width - 140, 1);
+
+  drawText(ctx, 'NOBODY TOUCHES THE PACKS', width / 2, 108, {
+    color: c.gameOverDim,
+    align: 'center',
+  });
+
+  drawMenu(
+    ctx,
+    TITLE_MENU.map((label) => ({ label })),
+    TITLE_MENU_TOP_Y,
+    world.menuIndex,
+  );
+
+  drawText(ctx, 'ARROWS + ENTER, OR CLICK', width / 2, 198, {
+    color: c.gameOverDim,
+    align: 'center',
+  });
+}
+
+const INSTRUCTION_LINES = [
+  ['', ''],
+  ['YOU ARE MALL SECURITY ON THE NIGHT SHIFT.', ''],
+  ['CARD SCALPERS COME FROM THE RIGHT TO BUY', ''],
+  ['OUT THE VENDING MACHINE. HOLD THEM OFF', ''],
+  ['UNTIL THE SUN COMES UP.', ''],
+  ['', ''],
+  ['WASD / ARROWS', 'MOVE'],
+  ['MOUSE', 'AIM'],
+  ['HOLD LEFT CLICK', 'FIRE'],
+  ['', ''],
+  ['THE BARRICADE IS YOUR HEALTH BAR.', ''],
+  ['WHEN IT FALLS THEY WALK TO THE MACHINE -', ''],
+  ['CLEAR THEM OFF IT AND YOU SURVIVE ANYWAY.', ''],
+  ['', ''],
+  ['DAMAGE TO THE WALL CARRIES TO TOMORROW.', ''],
+];
+
+function drawInstructionsScreen(ctx) {
+  const { width } = CONFIG.screen;
+  const c = CONFIG.colors;
+
+  ctx.fillStyle = c.titleVeil;
+  ctx.fillRect(0, 0, width, CONFIG.screen.height);
+
+  drawText(ctx, 'INSTRUCTIONS', width / 2, 14, {
+    color: c.titleMain,
+    scale: 2,
+    align: 'center',
+  });
+
+  INSTRUCTION_LINES.forEach(([text, value], index) => {
+    const y = 38 + index * 10;
+    if (!text) return;
+
+    // Lines with a value are control bindings, so they get two columns.
+    if (value) {
+      drawText(ctx, text, 150, y, { color: c.menuItemSelected, align: 'right' });
+      drawText(ctx, value, 162, y, { color: c.menuItem });
+    } else {
+      drawText(ctx, text, width / 2, y, { color: c.menuItem, align: 'center' });
+    }
+  });
+
+  drawText(ctx, 'ESC OR ENTER TO GO BACK', width / 2, 198, {
+    color: c.gameOverHint,
+    align: 'center',
+  });
+}
+
+export function getOptionsMenuItems() {
+  const difficulty = getDifficulty();
+
+  return [
+    { label: 'DIFFICULTY', value: difficulty.name },
+    { label: 'SCALPER HEALTH BARS', value: settings.showScalperHealth ? 'ON' : 'OFF' },
+    { label: 'BACK', value: '' },
+  ];
+}
+
+function drawOptionsScreen(ctx, world) {
+  const { width } = CONFIG.screen;
+  const c = CONFIG.colors;
+
+  ctx.fillStyle = c.titleVeil;
+  ctx.fillRect(0, 0, width, CONFIG.screen.height);
+
+  drawText(ctx, 'OPTIONS', width / 2, 22, {
+    color: c.titleMain,
+    scale: 2,
+    align: 'center',
+  });
+
+  drawMenu(ctx, getOptionsMenuItems(), OPTIONS_MENU_TOP_Y, world.menuIndex);
+
+  // The blurb under the list explains whichever row you're sitting on.
+  const difficulty = getDifficulty();
+  const blurb = world.menuIndex === 0
+    ? difficulty.blurb
+    : world.menuIndex === 1
+      ? 'LITTLE BARS OVER SCALPERS. HANDY WHEN TUNING.'
+      : 'RETURN TO THE TITLE SCREEN.';
+
+  drawText(ctx, blurb, width / 2, 158, { color: c.gameOverDim, align: 'center' });
+
+  drawText(ctx, 'LEFT / RIGHT OR CLICK TO CHANGE', width / 2, 186, {
+    color: c.gameOverHint,
+    align: 'center',
+  });
+  drawText(ctx, 'ESC TO GO BACK', width / 2, 198, {
+    color: c.gameOverDim,
+    align: 'center',
+  });
 }
 
 // The shop. Spend the night's pay before clocking on again.
@@ -332,31 +496,33 @@ function drawShopScreen(ctx, world) {
   ctx.fillStyle = c.shopVeil;
   ctx.fillRect(0, 0, width, CONFIG.screen.height);
 
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  drawText(ctx, `DAY ${profile.day} - THE MALL IS OPEN`, width / 2, 10, {
+    color: c.gameOverDim,
+    align: 'center',
+  });
 
-  ctx.font = '8px monospace';
-  ctx.fillStyle = c.gameOverDim;
-  ctx.fillText(`DAY ${profile.day} - THE MALL IS OPEN`, width / 2, 14);
+  drawText(ctx, 'SUPPLY RUN', width / 2, 22, {
+    color: c.shopName,
+    scale: 2,
+    align: 'center',
+  });
 
-  ctx.font = '16px monospace';
-  ctx.fillStyle = c.shopName;
-  ctx.fillText('SUPPLY RUN', width / 2, 30);
-
-  ctx.font = '8px monospace';
-  ctx.fillStyle = c.cash;
-  ctx.fillText(`CASH  ${profile.cash}`, width / 2, 46);
+  drawText(ctx, `CASH  ${profile.cash}`, width / 2, 42, {
+    color: c.cash,
+    align: 'center',
+  });
 
   const rows = getShopRows(profile);
   rows.forEach((row, index) => drawShopRow(ctx, row, index, world));
 
-  ctx.fillStyle = c.gameOverHint;
-  ctx.fillText('CLICK OR PRESS 1-5 TO BUY', width / 2, 188);
-  ctx.fillStyle = c.gameOverText;
-  ctx.fillText(`ENTER - START NIGHT ${profile.day}`, width / 2, 200);
-
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
+  drawText(ctx, 'CLICK OR PRESS 1-5 TO BUY', width / 2, 186, {
+    color: c.gameOverHint,
+    align: 'center',
+  });
+  drawText(ctx, `ENTER - START NIGHT ${profile.day}`, width / 2, 198, {
+    color: c.gameOverText,
+    align: 'center',
+  });
 }
 
 // Where each shop row sits. The drawing code and the click handling both call
@@ -380,29 +546,28 @@ function drawShopRow(ctx, row, index, world) {
   ctx.fillStyle = isHovered && row.affordable ? c.shopRowHighlight : c.shopPanel;
   ctx.fillRect(box.x, box.y, box.width, box.height);
 
-  ctx.textAlign = 'left';
-
   // The number you'd press for this row.
-  ctx.fillStyle = c.gameOverDim;
-  ctx.fillText(`${index + 1}`, box.x + 4, box.y + 7);
+  drawText(ctx, `${index + 1}`, box.x + 4, box.y + 3, { color: c.gameOverDim });
 
-  ctx.fillStyle = row.maxed ? c.shopMaxed : c.shopName;
-  ctx.fillText(row.name, box.x + 14, box.y + 7);
+  drawText(ctx, row.name, box.x + 13, box.y + 3, {
+    color: row.maxed ? c.shopMaxed : c.shopName,
+  });
 
-  ctx.fillStyle = c.shopBlurb;
-  ctx.fillText(row.detail, box.x + 14, box.y + 16);
+  drawText(ctx, row.detail, box.x + 13, box.y + 12, { color: c.shopBlurb });
 
   // Price on the right, red when you can't afford it.
-  ctx.textAlign = 'right';
+  const priceX = box.x + box.width - 5;
   if (row.maxed) {
-    ctx.fillStyle = c.shopMaxed;
-    ctx.fillText(row.maxedLabel, box.x + box.width - 5, box.y + 11);
+    drawText(ctx, row.maxedLabel, priceX, box.y + 7, {
+      color: c.shopMaxed,
+      align: 'right',
+    });
   } else {
-    ctx.fillStyle = row.affordable ? c.cash : c.cashShort;
-    ctx.fillText(`${row.cost}`, box.x + box.width - 5, box.y + 11);
+    drawText(ctx, `${row.cost}`, priceX, box.y + 7, {
+      color: row.affordable ? c.cash : c.cashShort,
+      align: 'right',
+    });
   }
-
-  ctx.textAlign = 'center';
 }
 
 // The screen you earn by losing.
@@ -418,16 +583,16 @@ function drawGameOverScreen(ctx, world) {
   ctx.fillStyle = c.gameOverVeil;
   ctx.fillRect(0, 0, width, height);
 
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  drawText(ctx, 'GAME OVER', width / 2, 52, {
+    color: c.gameOverTitle,
+    scale: 2,
+    align: 'center',
+  });
 
-  ctx.font = '16px monospace';
-  ctx.fillStyle = c.gameOverTitle;
-  ctx.fillText('GAME OVER', width / 2, 64);
-
-  ctx.font = '8px monospace';
-  ctx.fillStyle = c.gameOverText;
-  ctx.fillText('THEY BOUGHT OUT THE MACHINE', width / 2, 84);
+  drawText(ctx, 'THEY BOUGHT OUT THE MACHINE', width / 2, 76, {
+    color: c.gameOverText,
+    align: 'center',
+  });
 
   drawStatLines(ctx, [
     ['SCALPERS STOPPED', `${stats.scalpersStopped}`],
@@ -439,14 +604,11 @@ function drawGameOverScreen(ctx, world) {
   // The prompt only appears once restarting actually works, so it never
   // invites a press the game is going to ignore.
   if (world.gameOverCountdown <= 0) {
-    ctx.fillStyle = c.gameOverHint;
-    ctx.fillText('PRESS ANY KEY TO WORK ANOTHER NIGHT', width / 2, 172);
+    drawText(ctx, 'PRESS ANY KEY TO WORK ANOTHER NIGHT', width / 2, 172, {
+      color: c.gameOverHint,
+      align: 'center',
+    });
   }
-
-  // Put the canvas back how we found it, so the next frame's debug text isn't
-  // mysteriously centred.
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
 }
 
 // Labels and values in two tidy columns.
@@ -455,25 +617,20 @@ function drawGameOverScreen(ctx, world) {
 // the columns wander, because a longer value drags its label leftward. Pinning
 // the labels' right edge and the values' left edge to fixed positions instead
 // keeps them in line whatever they say.
-function drawStatLines(ctx, lines) {
-  const labelRightEdge = 210;
-  const valueLeftEdge = 222;
-  const firstLineY = 106;
-  const lineSpacing = 12;
+const STAT_LABEL_RIGHT = 206;
+const STAT_VALUE_LEFT = 218;
+const STAT_FIRST_LINE_Y = 100;
+const STAT_LINE_SPACING = 12;
 
-  ctx.fillStyle = CONFIG.colors.gameOverDim;
+function drawStatLines(ctx, lines) {
+  const color = CONFIG.colors.gameOverDim;
 
   lines.forEach(([label, value], index) => {
-    const y = firstLineY + index * lineSpacing;
+    const y = STAT_FIRST_LINE_Y + index * STAT_LINE_SPACING;
 
-    ctx.textAlign = 'right';
-    ctx.fillText(label, labelRightEdge, y);
-
-    ctx.textAlign = 'left';
-    ctx.fillText(value, valueLeftEdge, y);
+    drawText(ctx, label, STAT_LABEL_RIGHT, y, { color, align: 'right' });
+    drawText(ctx, value, STAT_VALUE_LEFT, y, { color });
   });
-
-  ctx.textAlign = 'center';
 }
 
 function formatDuration(totalSeconds) {
@@ -488,34 +645,26 @@ function drawDebugReadout(ctx, world, fps) {
   const { height } = CONFIG.screen;
   const c = CONFIG.colors;
 
-  ctx.font = '8px monospace';
-  ctx.textBaseline = 'top';
-
-  ctx.fillStyle = c.debugText;
-  ctx.fillText(`${fps} fps`, 4, 4);
+  const lines = [`${fps} FPS`];
 
   if (CONFIG.debug.showPosition) {
-    const x = Math.round(world.guard.x);
-    const y = Math.round(world.guard.y);
-    ctx.fillText(`x ${x}  y ${y}`, 4, 14);
+    lines.push(`X ${Math.round(world.guard.x)} Y ${Math.round(world.guard.y)}`);
   }
-
   if (CONFIG.debug.showBulletCount) {
-    ctx.fillText(`bullets ${world.bullets.length}`, 4, 24);
+    lines.push(`BULLETS ${world.bullets.length}`);
   }
-
   if (CONFIG.debug.showScalperCount) {
-    ctx.fillText(`scalpers ${world.scalpers.length}`, 4, 34);
-    ctx.fillText(`stopped ${world.scalpersStopped}`, 4, 44);
-    ctx.fillText(`packs ${world.machine.packsRemaining}`, 4, 54);
-    ctx.fillText(
-      `night ${world.day}  ${Math.round(getNightProgress(world) * 100)}%  in ${world.scalpersSpawnedTonight}/${getAssaultSize(world.day)}  $${world.profile.cash}`,
-      4,
-      64,
+    lines.push(`SCALPERS ${world.scalpers.length}`);
+    lines.push(`STOPPED ${world.scalpersStopped}`);
+    lines.push(`PACKS ${world.machine.packsRemaining}`);
+    lines.push(
+      `NIGHT ${world.day} ${Math.round(getNightProgress(world) * 100)}% IN ${world.scalpersSpawnedTonight}/${getAssaultSize(world.day)} $${world.profile.cash}`,
     );
   }
 
-  ctx.textBaseline = 'bottom';
-  ctx.fillStyle = c.debugLabel;
-  ctx.fillText(CONFIG.debug.buildLabel, 4, height - 3);
+  lines.forEach((line, index) => {
+    drawText(ctx, line, 4, 4 + index * 9, { color: c.debugText });
+  });
+
+  drawText(ctx, CONFIG.debug.buildLabel, 4, height - 11, { color: c.debugLabel });
 }

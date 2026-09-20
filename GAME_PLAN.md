@@ -310,7 +310,12 @@ Nothing blocking. Noted here so they don't get lost:
 
 ## Status
 
-Phase 1 in progress. Next up: **M8 — Title screen**.
+Phase 1 in progress. Next up: **M9 — Interviews: hire help**.
+
+**Queued from Jace's feedback:** a reload mechanic. The pistol currently fires
+six rounds a second forever, which feels like a machine gun. Ammo and reload are
+scheduled for M15 with the other weapons, but this is a *feel* problem rather than
+a feature, so it's worth pulling forward as its own short milestone.
 
 | Milestone | Status |
 |---|---|
@@ -321,6 +326,6 @@ Phase 1 in progress. Next up: **M8 — Title screen**.
 | M5 The breach | ☑ |
 | M6 Survive the night | ☑ |
 | M7 Paycheck and upgrades | ☑ |
-| M8 Title screen | ☐ |
+| M8 Title screen | ☑ |
 | M9 Interviews: hire help | ☐ |
 | M10–M23 | ☐ |

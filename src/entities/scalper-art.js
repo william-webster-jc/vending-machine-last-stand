@@ -12,6 +12,7 @@
 import { CONFIG } from '../config.js';
 import { drawFootShadow, drawHealthBar } from '../pixel.js';
 import { SCALPER_STATE } from './scalper.js';
+import { settings } from '../settings.js';
 
 export function drawScalper(ctx, scalper) {
   const c = CONFIG.colors;
@@ -31,14 +32,13 @@ export function drawScalper(ctx, scalper) {
   drawHead(ctx, left, top);
   drawArm(ctx, left, top, scalper, isStepping);
 
-  if (CONFIG.debug.showScalperHealth) {
+  if (settings.showScalperHealth) {
     drawScalperHealthBar(ctx, scalper, top);
   }
 }
 
-// A small health bar over the head. This is a TESTING aid — it's behind
-// CONFIG.debug.showScalperHealth, so the finished game can hide it and let
-// the hit flash in M10 do the job instead.
+// A small health bar over the head. Switchable from the options screen, so
+// you can turn it off once M10's hit flash makes it unnecessary.
 function drawScalperHealthBar(ctx, scalper, top) {
   const barWidth = 14;
   const barHeight = 2;

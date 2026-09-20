@@ -15,6 +15,7 @@ import { CONFIG } from './config.js';
 import { spawnScalper } from './entities/scalper.js';
 import { GAME_STATE } from './world.js';
 import { calculatePay } from './shop.js';
+import { getDifficulty } from './settings.js';
 
 // How far through the night we are, from 0 at dusk to 1 at full sunrise.
 export function getNightProgress(world) {
@@ -42,7 +43,9 @@ export function updateNight(world, deltaSeconds) {
 // How many scalpers turn up over the whole of a given night.
 export function getAssaultSize(day) {
   const cfg = CONFIG.night;
-  return cfg.assaultSizeOnNightOne + (day - 1) * cfg.assaultGrowthPerNight;
+  const base = cfg.assaultSizeOnNightOne + (day - 1) * cfg.assaultGrowthPerNight;
+
+  return Math.round(base * getDifficulty().assaultScale);
 }
 
 // How hard they're coming RIGHT NOW, relative to the night's average.
@@ -79,7 +82,8 @@ function updateAssault(world, deltaSeconds) {
 }
 
 function getSpeedMultiplier(day) {
-  return 1 + (day - 1) * CONFIG.night.speedGrowthPerNight;
+  const nightly = 1 + (day - 1) * CONFIG.night.speedGrowthPerNight;
+  return nightly * getDifficulty().speedScale;
 }
 
 // -----------------------------------------------------------------------------

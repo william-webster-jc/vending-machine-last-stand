@@ -18,7 +18,15 @@ import { updateMachine } from './entities/machine.js';
 import { createWorld, GAME_STATE } from './world.js';
 import { updateNight } from './night.js';
 import { createProfile, getShopRows, buyUpgrade } from './shop.js';
-import { getShopRowBox } from './render.js';
+import {
+  getShopRowBox,
+  TITLE_MENU,
+  TITLE_MENU_TOP_Y,
+  OPTIONS_MENU_TOP_Y,
+  getOptionsMenuItems,
+} from './render.js';
+import { findMenuRowAt, moveSelection } from './menu.js';
+import { settings, cycleDifficulty } from './settings.js';
 import {
   attachMouseTo,
   consumeAnyPress,
@@ -27,6 +35,7 @@ import {
   consumeDigits,
   getMousePosition,
   consumeConfirm,
+  consumeMenuActions,
 } from './input.js';
 
 const canvas = document.getElementById('game');
@@ -48,6 +57,9 @@ ctx.imageSmoothingEnabled = false;
 // is the only thing that survives a night.
 let profile = createProfile();
 let world = createWorld(profile);
+
+// The game opens on the title screen, not mid-shift.
+world.state = GAME_STATE.TITLE;
 
 // The mouse needs to know about the canvas so it can convert screen positions
 // into the game's own coordinates.
@@ -104,12 +116,125 @@ function update(deltaSeconds) {
     return;
   }
 
-  if (world.state === GAME_STATE.SHOP) {
-    updateShop();
+  switch (world.state) {
+    case GAME_STATE.TITLE:
+      updateTitle();
+      return;
+    case GAME_STATE.INSTRUCTIONS:
+      updateInstructions();
+      return;
+    case GAME_STATE.OPTIONS:
+      updateOptions();
+      return;
+    case GAME_STATE.SHOP:
+      updateShop();
+      return;
+    default:
+      updateBetweenNights(deltaSeconds);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// MENUS
+// -----------------------------------------------------------------------------
+
+// Every menu works the same way: arrows move the highlight, the mouse points
+// at a row, and Enter or a click picks it. This handles that shared part and
+// hands back what the caller has to act on.
+//
+// onNudge fires once per LEFT or RIGHT press. It's a callback rather than a
+// returned value on purpose: if two presses land between frames, storing one
+// number would quietly throw the second away, and the setting would only move
+// once. Calling back per press can't lose any.
+function runMenu(rowCount, topY, onNudge) {
+  const result = { chosen: -1, wentBack: false };
+
+  for (const action of consumeMenuActions()) {
+    if (action === 'menuUp') world.menuIndex = moveSelection(world.menuIndex, -1, rowCount);
+    if (action === 'menuDown') world.menuIndex = moveSelection(world.menuIndex, 1, rowCount);
+    if (action === 'back') result.wentBack = true;
+
+    if (onNudge && (action === 'menuLeft' || action === 'menuRight')) {
+      onNudge(action === 'menuRight' ? 1 : -1);
+    }
+  }
+
+  // Pointing at a row selects it, so keyboard and mouse never disagree about
+  // which row is live.
+  const hovered = findMenuRowAt(getMousePosition(), rowCount, topY);
+  if (hovered >= 0) world.menuIndex = hovered;
+
+  const click = consumeClick();
+  if (click) {
+    const clicked = findMenuRowAt(click, rowCount, topY);
+    if (clicked >= 0) result.chosen = clicked;
+  }
+
+  if (consumeConfirm()) result.chosen = world.menuIndex;
+
+  return result;
+}
+
+function goToMenu(state) {
+  world.state = state;
+  world.menuIndex = 0;
+  clearPendingPress();
+}
+
+function updateTitle() {
+  const { chosen } = runMenu(TITLE_MENU.length, TITLE_MENU_TOP_Y);
+  if (chosen < 0) return;
+
+  if (chosen === 0) {
+    startFreshCareer();
+  } else if (chosen === 1) {
+    goToMenu(GAME_STATE.INSTRUCTIONS);
+  } else {
+    goToMenu(GAME_STATE.OPTIONS);
+  }
+}
+
+function updateInstructions() {
+  const { chosen, wentBack } = runMenu(1, -999);
+  if (chosen >= 0 || wentBack || consumeAnyPress()) {
+    goToMenu(GAME_STATE.TITLE);
+  }
+}
+
+const OPTION_ROW_DIFFICULTY = 0;
+const OPTION_ROW_HEALTH_BARS = 1;
+const OPTION_ROW_BACK = 2;
+
+function updateOptions() {
+  const items = getOptionsMenuItems();
+
+  // Left/right changes the row you're sitting on, without leaving it.
+  const { chosen, wentBack } = runMenu(items.length, OPTIONS_MENU_TOP_Y, (direction) =>
+    changeOption(world.menuIndex, direction),
+  );
+
+  if (wentBack) {
+    goToMenu(GAME_STATE.TITLE);
     return;
   }
 
-  updateBetweenNights(deltaSeconds);
+  // Picking a row (Enter or a click) does the same thing as nudging it right.
+  if (chosen < 0) return;
+
+  if (chosen === OPTION_ROW_BACK) {
+    goToMenu(GAME_STATE.TITLE);
+    return;
+  }
+
+  changeOption(chosen, 1);
+}
+
+function changeOption(rowIndex, direction) {
+  if (rowIndex === OPTION_ROW_DIFFICULTY) {
+    cycleDifficulty(direction);
+  } else if (rowIndex === OPTION_ROW_HEALTH_BARS) {
+    settings.showScalperHealth = !settings.showScalperHealth;
+  }
 }
 
 function updatePlaying(deltaSeconds) {
@@ -166,6 +291,7 @@ function collectPayAndOpenShop() {
 function startFreshCareer() {
   profile = createProfile();
   world = createWorld(profile);
+  clearPendingPress();
 }
 
 // -----------------------------------------------------------------------------

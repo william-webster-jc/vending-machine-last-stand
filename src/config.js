@@ -99,14 +99,15 @@ export const CONFIG = {
 
     maxHealth: 20,
 
-    // Pixels per second walking left. The approach runway is about 207px, so
-    // at 26 they take roughly 8 seconds to reach the wall — long enough to
-    // watch them come and decide what to do about it.
-    speed: 26,
-
-    // Each scalper's speed is nudged up or down by up to this fraction, so a
-    // group spreads out into a ragged line instead of marching in lockstep.
-    speedVariation: 0.3,
+    // Each scalper gets its own walking speed somewhere in this range, in
+    // pixels per second. A WIDE range is what makes a crowd read as a crowd:
+    // stragglers you can ignore for a moment, and runners you have to deal
+    // with right now.
+    //
+    // The approach runway is about 207px, so a slow one takes ~10 seconds to
+    // cross it and a fast one about 4.
+    speedMin: 20,
+    speedMax: 52,
 
     // How much barricade health they chew through per second, once they're on
     // it. At 6, a single scalper takes 20 seconds to break a full wall.
@@ -264,6 +265,15 @@ export const CONFIG = {
     healthBarWarning: '#e8c34a',
     healthBarCritical: '#e05454',
 
+    // Title and menus
+    titleVeil: 'rgba(10, 7, 18, 0.9)',
+    titleMain: '#ffd479',
+    titleSub: '#e0547a',
+    titleRule: '#4d3f6b',
+    menuItem: '#c9c2da',
+    menuItemSelected: '#ffe27a',
+    menuPointer: '#7ae0b0',
+
     // Shop
     shopVeil: 'rgba(14, 10, 24, 0.93)',
     shopPanel: '#241c38',
@@ -369,6 +379,41 @@ export const CONFIG = {
   },
 
   // ---------------------------------------------------------------------------
+  // DIFFICULTY
+  //
+  // The dials you've been editing by hand, packaged into choices a player can
+  // make from the options screen. Each is a multiplier on the real numbers.
+  // ---------------------------------------------------------------------------
+  difficulty: {
+    presets: [
+      {
+        id: 'quiet',
+        name: 'QUIET SHIFT',
+        blurb: 'FEWER, SLOWER, STURDIER WALL',
+        assaultScale: 0.65,
+        speedScale: 0.85,
+        wallScale: 1.35,
+      },
+      {
+        id: 'nightshift',
+        name: 'NIGHT SHIFT',
+        blurb: 'THE JOB AS ADVERTISED',
+        assaultScale: 1,
+        speedScale: 1,
+        wallScale: 1,
+      },
+      {
+        id: 'blackfriday',
+        name: 'BLACK FRIDAY',
+        blurb: 'MORE, FASTER, WEAKER WALL',
+        assaultScale: 1.45,
+        speedScale: 1.15,
+        wallScale: 0.8,
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
   // PAY AND UPGRADES
   //
   // What you earn for a night's work, and what you can spend it on the next
@@ -460,7 +505,7 @@ export const CONFIG = {
   debug: {
     showDebug: true,
     fpsSampleSeconds: 0.5,
-    buildLabel: 'M7 - PAYCHECK',
+    buildLabel: 'M8 - TITLE SCREEN',
 
     // Shows your exact position on screen. Handy while testing movement.
     showPosition: true,
@@ -472,8 +517,5 @@ export const CONFIG = {
     // Shows how many scalpers are on the floor.
     showScalperCount: true,
 
-    // A little health bar over every scalper's head, so you can watch damage
-    // land while testing. Turn off for a clean-looking game.
-    showScalperHealth: true,
   },
 };

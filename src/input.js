@@ -21,6 +21,14 @@ const KEY_BINDINGS = {
 
   // Menu confirm.
   confirm: ['Enter', 'NumpadEnter', 'Space'],
+
+  // Menu navigation. Kept separate from movement so a menu can't be driven
+  // by the same held key that's walking the guard around.
+  menuUp: ['ArrowUp', 'KeyW'],
+  menuDown: ['ArrowDown', 'KeyS'],
+  menuLeft: ['ArrowLeft', 'KeyA'],
+  menuRight: ['ArrowRight', 'KeyD'],
+  back: ['Escape'],
 };
 
 // Every key currently being held down, by its physical position on the keyboard.
@@ -36,6 +44,10 @@ let pendingClick = null;
 
 // Digit keys pressed since the last check, for menu shortcuts.
 const pendingDigits = [];
+
+// Menu keypresses waiting to be handled, oldest first.
+const MENU_ACTIONS = ['menuUp', 'menuDown', 'menuLeft', 'menuRight', 'back'];
+const pendingMenuActions = [];
 
 // Confirm presses since the last check.
 //
@@ -65,6 +77,14 @@ window.addEventListener('keydown', (event) => {
 
   if (KEY_BINDINGS.confirm.includes(event.code)) {
     confirmPresses += 1;
+  }
+
+  // Menus need the MOMENT a key goes down, so they're queued up here rather
+  // than read from the held-keys set.
+  for (const action of MENU_ACTIONS) {
+    if (KEY_BINDINGS[action].includes(event.code)) {
+      pendingMenuActions.push(action);
+    }
   }
 });
 
@@ -188,7 +208,15 @@ export function clearPendingPress() {
   anyPressSinceLastCheck = false;
   pendingClick = null;
   pendingDigits.length = 0;
+  pendingMenuActions.length = 0;
   confirmPresses = 0;
+}
+
+// Menu keypresses since last asked, oldest first. Reading them takes them.
+export function consumeMenuActions() {
+  const actions = pendingMenuActions.slice();
+  pendingMenuActions.length = 0;
+  return actions;
 }
 
 // True if confirm was pressed since last asked. Reading it takes it.

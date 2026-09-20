@@ -27,20 +27,19 @@ export const SCALPER_STATE = {
 // -----------------------------------------------------------------------------
 
 export function spawnScalper(world, speedMultiplier = 1) {
-  const { width, height, speed, speedVariation, spawnMargin, maxHealth } = CONFIG.scalper;
+  const { width, height, speedMin, speedMax, spawnMargin, maxHealth } = CONFIG.scalper;
   const { walkTopY, walkBottomY } = CONFIG.world;
 
-  // A random speed nudge, so a group arrives as a ragged line rather than a
-  // marching block. Small touches like this are most of what makes a crowd
-  // read as a crowd.
-  const variation = 1 + (Math.random() * 2 - 1) * speedVariation;
+  // Each one picks its own pace from the range, so a group arrives as a ragged
+  // line rather than a marching block.
+  const ownSpeed = speedMin + Math.random() * (speedMax - speedMin);
 
   world.scalpers.push({
     x: CONFIG.screen.width + spawnMargin,
     y: walkTopY + Math.random() * (walkBottomY - walkTopY),
     width,
     height,
-    speed: speed * variation * speedMultiplier,
+    speed: ownSpeed * speedMultiplier,
     health: maxHealth,
     state: SCALPER_STATE.APPROACHING,
 
