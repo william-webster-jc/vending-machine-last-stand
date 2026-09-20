@@ -29,7 +29,7 @@ import { getMousePosition } from './input.js';
 import { GAME_STATE } from './world.js';
 import { getShopRows } from './shop.js';
 import { drawText, drawTextWithShadow } from './font.js';
-import { drawMenu } from './menu.js';
+import { drawMenu, getMenuRowBox } from './menu.js';
 import { settings, getDifficulty } from './settings.js';
 import { mixColors } from './pixel.js';
 import {
@@ -58,7 +58,7 @@ export function getDevRowBox(index) {
     height: 11,
   };
 }
-export const OPTIONS_MENU_TOP_Y = 96;
+export const OPTIONS_MENU_TOP_Y = 74;
 export const TITLE_MENU_TOP_Y = 128;
 
 export function drawScene(ctx, world, fps) {
@@ -845,7 +845,8 @@ function drawOptionsScreen(ctx, world) {
     align: 'center',
   });
 
-  drawMenu(ctx, getOptionsMenuItems(), OPTIONS_MENU_TOP_Y, world.menuIndex);
+  const items = getOptionsMenuItems();
+  drawMenu(ctx, items, OPTIONS_MENU_TOP_Y, world.menuIndex);
 
   // The blurb under the list explains whichever row you're sitting on.
   const difficulty = getDifficulty();
@@ -858,7 +859,14 @@ function drawOptionsScreen(ctx, world) {
   ];
   const blurb = blurbs[world.menuIndex] || '';
 
-  drawText(ctx, blurb, width / 2, 158, { color: c.gameOverDim, align: 'center' });
+  // The description sits BELOW the last row, worked out from where that row
+  // actually is rather than from a number typed in here. Adding the volume
+  // row pushed the menu down into a hardcoded 158 and the two overlapped —
+  // measuring from the list means that can't happen again.
+  const lastRow = getMenuRowBox(items.length - 1, OPTIONS_MENU_TOP_Y);
+  const blurbY = lastRow.y + lastRow.height + 9;
+
+  drawText(ctx, blurb, width / 2, blurbY, { color: c.gameOverDim, align: 'center' });
 
   drawText(ctx, 'LEFT / RIGHT OR CLICK TO CHANGE', width / 2, 186, {
     color: c.gameOverHint,
