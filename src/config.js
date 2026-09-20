@@ -119,10 +119,12 @@ export const CONFIG = {
     separationX: 9,
     separationY: 7,
 
-    // Once the wall is down they mob the machine. Each one picks a spot up to
-    // this many pixels back from it, so the crowd has depth instead of being
-    // a single line of people all touching the glass.
-    crowdSpread: 26,
+    // Once the wall is down they mob the FRONT of the machine — that's where
+    // the glass and the dispenser are, so it's the only place you can
+    // actually buy anything. Each one picks a spot up to this many pixels
+    // forward of the machine's base, giving the crowd depth instead of one
+    // flat line pressed against the glass.
+    crowdSpread: 44,
 
     // How close they get before they stop and start attacking.
     attackReach: 3,

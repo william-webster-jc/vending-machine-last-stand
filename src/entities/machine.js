@@ -9,7 +9,7 @@
 
 import { CONFIG } from '../config.js';
 import { drawHealthBar } from '../pixel.js';
-import { SCALPER_STATE } from './scalper.js';
+import { SCALPER_STATE, isInFrontOfMachine } from './scalper.js';
 import { GAME_STATE } from '../world.js';
 
 // -----------------------------------------------------------------------------
@@ -40,11 +40,18 @@ export function updateMachine(world, deltaSeconds) {
   }
 }
 
+// Only scalpers standing in FRONT of the machine can take anything from it.
+// The glass and the dispenser are on the front face, so anyone stuck at its
+// flank is queueing, not buying — they cost you nothing until they get round.
 function countBuyers(world) {
   let count = 0;
+
   for (const scalper of world.scalpers) {
-    if (scalper.state === SCALPER_STATE.AT_MACHINE) count++;
+    if (scalper.state !== SCALPER_STATE.AT_MACHINE) continue;
+    if (!isInFrontOfMachine(scalper)) continue;
+    count++;
   }
+
   return count;
 }
 

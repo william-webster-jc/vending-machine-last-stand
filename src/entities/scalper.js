@@ -18,8 +18,8 @@ import { CONFIG } from '../config.js';
 export const SCALPER_STATE = {
   APPROACHING: 'approaching',       // walking in from the right
   ATTACKING_BARRICADE: 'attacking', // chewing through the wall
-  HEADING_FOR_MACHINE: 'heading',   // wall is down, going for the packs
-  AT_MACHINE: 'at-machine',         // arrived (M5 makes this matter)
+  HEADING_FOR_MACHINE: 'heading',   // wall is down, rounding to the machine front
+  AT_MACHINE: 'at-machine',         // in front of the glass, buying packs
 };
 
 // -----------------------------------------------------------------------------
@@ -47,9 +47,9 @@ export function spawnScalper(world) {
     // Used only for the walk animation — counts up as they move.
     walkCycle: Math.random() * 10,
 
-    // How far back from the machine this one settles once the wall is down.
-    // Giving everyone their own number is what turns a queue into a mob.
-    crowdOffset: Math.random() * CONFIG.scalper.crowdSpread,
+    // The exact spot in front of the machine this one is making for. Assigned
+    // the moment it starts heading there, so it doesn't wander frame to frame.
+    machineTarget: null,
   });
 }
 
@@ -148,7 +148,13 @@ function updateOneScalper(scalper, world, deltaSeconds) {
       break;
 
     case SCALPER_STATE.AT_MACHINE:
-      // M5 gives this meaning: they start buying packs and you start losing.
+      // Being jostled by the crowd can shove someone back out of the buying
+      // zone. Rather than leaving them stranded at the side doing nothing,
+      // send them round to the front again.
+      if (!isInFrontOfMachine(scalper)) {
+        scalper.machineTarget = null;
+        scalper.state = SCALPER_STATE.HEADING_FOR_MACHINE;
+      }
       break;
   }
 }
@@ -189,30 +195,74 @@ function attackBarricade(scalper, world, deltaSeconds) {
 }
 
 function headForMachine(scalper, deltaSeconds) {
-  walkLeft(scalper, deltaSeconds);
+  if (!scalper.machineTarget) {
+    scalper.machineTarget = pickSpotInFrontOfMachine();
+  }
 
-  const target = getMachineCrowdSpot(scalper);
-  if (scalper.x <= target) {
-    scalper.x = target;
+  walkToward(scalper, scalper.machineTarget, deltaSeconds);
+
+  const distanceToSpot = Math.hypot(
+    scalper.machineTarget.x - scalper.x,
+    scalper.machineTarget.y - scalper.y,
+  );
+
+  if (distanceToSpot < 1.5 && isInFrontOfMachine(scalper)) {
     scalper.state = SCALPER_STATE.AT_MACHINE;
   }
 }
 
-// Where this scalper is trying to stand once it reaches the machine.
+// A spot on the floor in front of the machine — spread across its face and
+// scattered forward, so the crowd fills the space rather than forming a line.
+function pickSpotInFrontOfMachine() {
+  const machine = CONFIG.machine;
+
+  return {
+    x: machine.x + 3 + Math.random() * (machine.width - 6),
+    y: Math.min(
+      machine.footY + 3 + Math.random() * CONFIG.scalper.crowdSpread,
+      CONFIG.world.walkBottomY,
+    ),
+  };
+}
+
+// Standing somewhere you could actually buy from: in FRONT of the machine's
+// face, not beside it. The glass and the dispenser are on the front, so it's
+// the only side a pack can come out of. Anyone stuck at the machine's flank
+// is just queueing.
+export function isInFrontOfMachine(scalper) {
+  const machine = CONFIG.machine;
+  const halfWidth = scalper.width / 2;
+
+  return (
+    scalper.y > machine.footY + 2 &&
+    scalper.x > machine.x - halfWidth &&
+    scalper.x < machine.x + machine.width + halfWidth
+  );
+}
+
+// Move toward a point in any direction, rather than only leftward.
 //
-// The machine is an object on the floor, not a wall — same rule the guard
-// plays by. Anyone walking along the front of it can get right up to the
-// glass. Anyone level with it has to stop at its side. That difference is
-// what makes the crowd wrap around the front instead of forming a flat line.
-function getMachineCrowdSpot(scalper) {
-  const machineFrontY = CONFIG.machine.footY + 4;
-  const isInFrontOfMachine = scalper.y > machineFrontY;
+// The machine is solid, so anyone still level with it stops at its flank and
+// has to keep coming forward before they can round the corner to the front.
+// That's exactly the rule the guard plays by.
+function walkToward(scalper, target, deltaSeconds) {
+  const toTargetX = target.x - scalper.x;
+  const toTargetY = target.y - scalper.y;
+  const distance = Math.hypot(toTargetX, toTargetY);
+  if (distance < 0.01) return;
 
-  const base = isInFrontOfMachine
-    ? CONFIG.machine.x + scalper.width / 2
-    : CONFIG.machine.x + CONFIG.machine.width + scalper.width / 2;
+  // Never overshoot the target in a single frame.
+  const step = Math.min(scalper.speed * deltaSeconds, distance);
+  scalper.x += (toTargetX / distance) * step;
+  scalper.y += (toTargetY / distance) * step;
 
-  return base + scalper.crowdOffset;
+  const machineFlank = CONFIG.machine.x + CONFIG.machine.width + scalper.width / 2;
+  const isLevelWithMachine = scalper.y <= CONFIG.machine.footY + 2;
+  if (isLevelWithMachine && scalper.x < machineFlank) {
+    scalper.x = machineFlank;
+  }
+
+  scalper.walkCycle += deltaSeconds * scalper.speed * 0.25;
 }
 
 function walkLeft(scalper, deltaSeconds) {
