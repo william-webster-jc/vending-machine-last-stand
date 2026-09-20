@@ -10,6 +10,7 @@
 // =============================================================================
 
 import { CONFIG } from './config.js';
+import { wakeAudio } from './audio.js';
 
 // Each action lists every key that triggers it, so WASD and the arrow keys both
 // work without the rest of the game needing to care which one you used.
@@ -77,6 +78,10 @@ const KEYS_TO_SWALLOW = new Set([
 ]);
 
 window.addEventListener('keydown', (event) => {
+  // Browsers won't make a sound until the player has actually interacted with
+  // the page, so this is the earliest honest moment to start the audio.
+  wakeAudio();
+
   if (KEYS_TO_SWALLOW.has(event.code)) {
     event.preventDefault();
   }
@@ -166,6 +171,7 @@ export function attachMouseTo(canvas) {
   });
 
   canvas.addEventListener('mousedown', (event) => {
+    wakeAudio();
     updateMousePosition(canvas, event);
     mouse.isDown = true;
     anyPressSinceLastCheck = true;

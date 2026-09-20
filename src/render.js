@@ -816,10 +816,19 @@ export function getOptionsMenuItems() {
 
   return [
     { label: 'DIFFICULTY', value: difficulty.name },
+    { label: 'VOLUME', value: formatVolume(settings.volume) },
     { label: 'SCALPER HEALTH BARS', value: settings.showScalperHealth ? 'ON' : 'OFF' },
     { label: 'DEVELOPER MODE', value: settings.devMode ? 'ON' : 'OFF' },
     { label: 'BACK', value: '' },
   ];
+}
+
+// Volume as a row of blocks rather than a number — you're setting a feeling,
+// not entering a value.
+function formatVolume(volume) {
+  const steps = 10;
+  const filled = Math.round(volume * steps);
+  return '|'.repeat(filled) + '.'.repeat(steps - filled);
 }
 
 function drawOptionsScreen(ctx, world) {
@@ -842,8 +851,9 @@ function drawOptionsScreen(ctx, world) {
   const difficulty = getDifficulty();
   const blurbs = [
     difficulty.blurb,
+    'HOW LOUD. ZERO IS SILENT.',
     'LITTLE BARS OVER SCALPERS. HANDY WHEN TUNING.',
-    'CHEAT PANEL - PRESS F1 DURING A SHIFT.',
+    'EVERY WEAPON UNLOCKED, PLUS A CHEAT PANEL ON F1.',
     'RETURN TO THE TITLE SCREEN.',
   ];
   const blurb = blurbs[world.menuIndex] || '';

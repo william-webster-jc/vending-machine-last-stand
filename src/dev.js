@@ -5,6 +5,10 @@
 // or a boss fight WITHOUT first earning any of it, which is the difference
 // between tuning a number in thirty seconds and tuning it in twenty minutes.
 //
+// Switching developer mode on ALREADY hands you every weapon — that's the main
+// reason to turn it on, so you shouldn't have to come in here and ask. This
+// panel is for everything else: cash, upgrades, crew, which night you're on.
+//
 // It's switched on from the options screen and opened with F1 during a shift.
 // Nothing in here is reachable unless you deliberately turn it on.
 // =============================================================================
@@ -12,7 +16,6 @@
 import { CONFIG } from './config.js';
 import { settings } from './settings.js';
 import { getUpgradeLevel } from './shop.js';
-import { ownsWeapon } from './weapons.js';
 import { spawnScalper } from './entities/scalper.js';
 import { createBoss } from './entities/boss.js';
 
@@ -29,12 +32,6 @@ export function getDevRows(world, profile) {
   const rows = [];
 
   rows.push({ id: 'cash', label: 'CASH', value: `${profile.cash}` });
-
-  rows.push({
-    id: 'weapons',
-    label: 'ALL WEAPONS',
-    value: ownsEverything(profile) ? 'UNLOCKED' : 'LOCKED',
-  });
 
   for (const item of CONFIG.economy.items) {
     rows.push({
@@ -61,10 +58,6 @@ export function getDevRows(world, profile) {
   return rows;
 }
 
-function ownsEverything(profile) {
-  return CONFIG.weapons.every((weapon) => ownsWeapon(profile, weapon.id));
-}
-
 function getSpawnTypeName(world) {
   const index = world.devSpawnIndex || 0;
   return CONFIG.scalperTypes[index % CONFIG.scalperTypes.length].name;
@@ -82,11 +75,6 @@ export function applyDevAction(world, profile, rowId, direction) {
 
   if (rowId === 'cash') {
     profile.cash = Math.max(0, profile.cash + direction * CASH_STEP);
-    return DEV_COMMAND.NONE;
-  }
-
-  if (rowId === 'weapons') {
-    toggleAllWeapons(profile);
     return DEV_COMMAND.NONE;
   }
 
@@ -140,15 +128,6 @@ export function applyDevAction(world, profile, rowId, direction) {
   }
 
   return DEV_COMMAND.NONE;
-}
-
-function toggleAllWeapons(profile) {
-  if (ownsEverything(profile)) {
-    profile.ownedWeapons = [];
-    return;
-  }
-
-  profile.ownedWeapons = CONFIG.weapons.filter((w) => w.cost > 0).map((w) => w.id);
 }
 
 function stepUpgrade(profile, id, direction) {

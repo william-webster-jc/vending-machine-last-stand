@@ -17,6 +17,7 @@ import { GAME_STATE } from './world.js';
 import { calculatePay, getNightlyWages } from './shop.js';
 import { getDifficulty } from './settings.js';
 import { createBoss, updateBoss } from './entities/boss.js';
+import { playSunrise } from './audio.js';
 
 // How far through the night we are, from 0 at dusk to 1 at full sunrise.
 export function getNightProgress(world) {
@@ -109,6 +110,7 @@ function updateBossArrival(world) {
 // -----------------------------------------------------------------------------
 
 function surviveTheNight(world) {
+  playSunrise();
   world.state = GAME_STATE.NIGHT_SURVIVED;
   world.gameOverCountdown = CONFIG.gameOver.restartDelaySeconds;
 

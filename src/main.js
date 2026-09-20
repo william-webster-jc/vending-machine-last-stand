@@ -36,6 +36,14 @@ import { findMenuRowAt, moveSelection } from './menu.js';
 import { settings, cycleDifficulty } from './settings.js';
 import { getDevRows, applyDevAction, DEV_COMMAND } from './dev.js';
 import {
+  setVolume,
+  playMenuMove,
+  playMenuConfirm,
+  playPurchase,
+  playDenied,
+  playNightStart,
+} from './audio.js';
+import {
   attachMouseTo,
   consumeAnyPress,
   clearPendingPress,
@@ -166,8 +174,14 @@ function runMenu(rowCount, topY, onNudge) {
   const result = { chosen: -1, wentBack: false };
 
   for (const action of consumeMenuActions()) {
-    if (action === 'menuUp') world.menuIndex = moveSelection(world.menuIndex, -1, rowCount);
-    if (action === 'menuDown') world.menuIndex = moveSelection(world.menuIndex, 1, rowCount);
+    if (action === 'menuUp') {
+      world.menuIndex = moveSelection(world.menuIndex, -1, rowCount);
+      playMenuMove();
+    }
+    if (action === 'menuDown') {
+      world.menuIndex = moveSelection(world.menuIndex, 1, rowCount);
+      playMenuMove();
+    }
     if (action === 'back') result.wentBack = true;
 
     if (onNudge && (action === 'menuLeft' || action === 'menuRight')) {
@@ -187,6 +201,8 @@ function runMenu(rowCount, topY, onNudge) {
   }
 
   if (consumeConfirm()) result.chosen = world.menuIndex;
+
+  if (result.chosen >= 0) playMenuConfirm();
 
   return result;
 }
@@ -354,9 +370,10 @@ function findDevRowAt(point, rowCount, click) {
 }
 
 const OPTION_ROW_DIFFICULTY = 0;
-const OPTION_ROW_HEALTH_BARS = 1;
-const OPTION_ROW_DEV_MODE = 2;
-const OPTION_ROW_BACK = 3;
+const OPTION_ROW_VOLUME = 1;
+const OPTION_ROW_HEALTH_BARS = 2;
+const OPTION_ROW_DEV_MODE = 3;
+const OPTION_ROW_BACK = 4;
 
 function updateOptions() {
   const items = getOptionsMenuItems();
@@ -399,6 +416,9 @@ function leaveOptions() {
 function changeOption(rowIndex, direction) {
   if (rowIndex === OPTION_ROW_DIFFICULTY) {
     cycleDifficulty(direction);
+  } else if (rowIndex === OPTION_ROW_VOLUME) {
+    setVolume(settings.volume + direction * 0.1);
+    playMenuConfirm();
   } else if (rowIndex === OPTION_ROW_HEALTH_BARS) {
     settings.showScalperHealth = !settings.showScalperHealth;
   } else if (rowIndex === OPTION_ROW_DEV_MODE) {
@@ -494,6 +514,7 @@ function startFreshCareer() {
   profile = createProfile();
   world = createWorld(profile);
   clearPendingPress();
+  playNightStart();
 }
 
 // -----------------------------------------------------------------------------
@@ -509,20 +530,27 @@ function updateShop() {
   // Number keys.
   for (const digit of consumeDigits()) {
     const row = rows[digit - 1];
-    if (row) buyUpgrade(profile, row.id);
+    if (row) reportPurchase(buyUpgrade(profile, row.id));
   }
 
   // Clicks on a row.
   const click = consumeClick();
   if (click) {
     const index = findRowAt(click, rows.length);
-    if (index >= 0) buyUpgrade(profile, rows[index].id);
+    if (index >= 0) reportPurchase(buyUpgrade(profile, rows[index].id));
   }
 
   if (consumeConfirm()) {
     clearPendingPress();
+    playNightStart();
     world = createWorld(profile);
   }
+}
+
+// A chime when money changes hands, a buzz when it can't.
+function reportPurchase(succeeded) {
+  if (succeeded) playPurchase();
+  else playDenied();
 }
 
 function trackHoveredRow(rows) {

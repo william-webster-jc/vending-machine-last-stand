@@ -15,6 +15,7 @@ import { CONFIG } from '../config.js';
 import { getScalperHitBox, getScalperHeadBox } from './scalper.js';
 import { getBossHitBox, getWeakPointBox, damageBoss } from './boss.js';
 import { addShake, spawnHitSparks } from '../juice.js';
+import { playHit, playHeadshot } from '../audio.js';
 
 // Create one bullet, travelling outward from (x, y) in the given direction.
 // The angle is in radians — 0 points right, and it goes clockwise from there.
@@ -73,6 +74,9 @@ function hitTheBoss(bullet, world) {
     world,
     hitWeakPoint ? CONFIG.juice.shakeOnWeakPointHit : CONFIG.juice.shakeOnBulletHit,
   );
+
+  if (hitWeakPoint) playHeadshot();
+  else playHit();
   return true;
 }
 
@@ -102,6 +106,11 @@ function hitAScalper(bullet, world) {
 
     spawnHitSparks(world, bullet.x, bullet.y, angle);
     addShake(world, CONFIG.juice.shakeOnBulletHit);
+
+    // A distinct ping for a headshot, so you learn the armour rule by ear as
+    // well as by watching the health bar.
+    if (scalper.armored && scalper.lastHitWasHeadshot) playHeadshot();
+    else playHit();
     return true;
   }
 

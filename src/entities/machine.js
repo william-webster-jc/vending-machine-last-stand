@@ -11,6 +11,7 @@ import { CONFIG } from '../config.js';
 import { drawHealthBar } from '../pixel.js';
 import { SCALPER_STATE, isInFrontOfMachine } from './scalper.js';
 import { GAME_STATE } from '../world.js';
+import { playGameOver } from '../audio.js';
 
 // -----------------------------------------------------------------------------
 // BEING ROBBED
@@ -56,6 +57,7 @@ function countBuyers(world) {
 }
 
 function endTheNight(world) {
+  playGameOver();
   world.state = GAME_STATE.GAME_OVER;
   world.gameOverCountdown = CONFIG.gameOver.restartDelaySeconds;
 

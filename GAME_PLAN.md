@@ -195,11 +195,13 @@ blur.
 **The one new idea:** *Sprite sheets* — one PNG holding animation frames in a grid,
 with the code picking which square to draw each frame.
 
-### M12 — Sound
-Gunshot, hit, scalper death, barricade crunch, wave incoming, breach alarm, sunrise
-fanfare, cash register for the shop. A loopable night-shift track. Mute key.
-**The one new idea:** *Audio pooling* — firing the same sound twelve times at once
-without it popping or lagging.
+### M12 — Sound  ☑
+**Done:** every sound is SYNTHESISED rather than loaded from a file. Tones sweeping
+downward make the crack of a gunshot; filtered static makes its body. That's how
+8-bit consoles did it, so it fits — and a new sound is a few numbers rather than a
+recording session. Volume slider in Options.
+
+**Still open:** a loopable night-shift music track.
 
 ### M13 — HUD, pause, options
 Clean HUD: barricade health, night progress, cash, ammo, day count. Pause that
@@ -356,4 +358,5 @@ rather than the basics.
 | M14 Scalper archetypes | ☑ |
 | M15 Weapons | ☑ |
 | M17 Bosses | ☑ |
-| M11–M13, M16, M18–M23 | ☐ |
+| M12 Sound | ☑ |
+| M11, M13, M16, M18–M23 | ☐ |

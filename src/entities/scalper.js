@@ -16,6 +16,7 @@
 import { CONFIG } from '../config.js';
 import { addShake, spawnDeathBurst, spawnSplinters } from '../juice.js';
 import { damageBarricade } from './barricade.js';
+import { playScalperDown, playBarricadeHit, playBarricadeBreak } from '../audio.js';
 
 export const SCALPER_STATE = {
   APPROACHING: 'approaching',       // walking in from the right
@@ -136,6 +137,7 @@ export function updateScalpers(world, deltaSeconds) {
     if (scalper.health <= 0) {
       spawnDeathBurst(world, scalper.x, scalper.y);
       addShake(world, CONFIG.juice.shakeOnScalperDeath);
+      playScalperDown();
 
       scalpers.splice(i, 1);
       world.scalpersStopped += 1;
@@ -252,14 +254,17 @@ function attackBarricade(scalper, world, deltaSeconds) {
   // Keep the animation ticking so they visibly swing at it.
   scalper.walkCycle += deltaSeconds * 6;
 
-  // Splinters fly on the beat of the swing, not every frame.
+  // Splinters and a thud on the beat of the swing, not every frame — that
+  // would be a constant spray of both.
   if (Math.floor(scalper.walkCycle) !== Math.floor(scalper.walkCycle - deltaSeconds * 6)) {
     spawnSplinters(world, CONFIG.barricade.x + CONFIG.barricade.width, scalper.y - 12);
+    playBarricadeHit();
   }
 
   if (world.barricade.isBroken && !scalper.sawItFall) {
     scalper.sawItFall = true;
     addShake(world, CONFIG.juice.shakeOnBarricadeBreak);
+    playBarricadeBreak();
   }
 }
 

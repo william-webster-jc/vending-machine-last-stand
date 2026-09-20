@@ -11,6 +11,7 @@
 // =============================================================================
 
 import { CONFIG } from './config.js';
+import { settings } from './settings.js';
 
 export function getWeapon(id) {
   return CONFIG.weapons.find((weapon) => weapon.id === id) || CONFIG.weapons[0];
@@ -23,12 +24,17 @@ export function getStartingWeaponId() {
 // Weapons you've bought, plus the one you always have. Ordered the same way as
 // config, so the number key for a weapon never moves around on you.
 export function getOwnedWeapons(profile) {
-  return CONFIG.weapons.filter(
-    (weapon) => weapon.cost === 0 || profile.ownedWeapons.includes(weapon.id),
-  );
+  return CONFIG.weapons.filter((weapon) => ownsWeapon(profile, weapon.id));
 }
 
 export function ownsWeapon(profile, id) {
+  // Developer mode hands you the whole arsenal straight away — that's the
+  // main reason to switch it on, so you shouldn't have to go and ask for it.
+  //
+  // It's answered here rather than by writing the weapons into your save, so
+  // switching developer mode off gives you your real progress back untouched.
+  if (settings.devMode) return true;
+
   return getWeapon(id).cost === 0 || profile.ownedWeapons.includes(id);
 }
 

@@ -15,6 +15,7 @@ import { spawnBullet } from './bullet.js';
 import { throwGrenade } from './grenade.js';
 import { getBarricadeBlockLine } from './barricade.js';
 import { spawnCasing } from '../juice.js';
+import { playWeapon, playReload, playDryFire } from '../audio.js';
 import {
   getWeapon,
   getRoundsLeft,
@@ -99,7 +100,10 @@ function updateFiring(guard, world, deltaSeconds) {
   // Out of ammo: pulling the trigger starts a reload instead of firing. It's
   // what you'd do anyway, and it saves you fumbling for the key mid-fight.
   if (getRoundsLeft(guard) <= 0) {
-    beginReload(guard);
+    if (beginReload(guard)) {
+      playDryFire();
+      playReload(weapon.reloadSeconds);
+    }
     guard.hasFiredThisClick = true;
     return;
   }
@@ -129,14 +133,16 @@ function fireOnce(guard, world, weapon) {
   guard.hasFiredThisClick = true;
 
   guard.muzzleFlash = CONFIG.juice.muzzleFlashSeconds;
+  playWeapon(weapon.id);
+
   if (weapon.kind !== 'grenade') {
     spawnCasing(world, muzzle.x, muzzle.y - 2, guard.facing);
   }
 
   // Firing the last round starts the reload straight away, so the delay
   // begins immediately rather than waiting for you to notice.
-  if (getRoundsLeft(guard) <= 0) {
-    beginReload(guard);
+  if (getRoundsLeft(guard) <= 0 && beginReload(guard)) {
+    playReload(weapon.reloadSeconds);
   }
 }
 

@@ -16,6 +16,9 @@ export const settings = {
   // you're just playing.
   showScalperHealth: true,
 
+  // Master volume, 0 to 1 in steps from the options screen.
+  volume: 0.7,
+
   // DEVELOPER MODE. Off by default, switched on from the options screen.
   // While it's on, F1 opens a panel that hands you cash, weapons, upgrades,
   // crew and whatever else, so you can try things without earning them first.

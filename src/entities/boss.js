@@ -18,6 +18,7 @@ import { CONFIG } from '../config.js';
 import { spawnScalper } from './scalper.js';
 import { addShake, spawnSplinters } from '../juice.js';
 import { damageBarricade } from './barricade.js';
+import { playWeakPointOpen, playBossStaggered, playBossSlam } from '../audio.js';
 
 export const BOSS_STATE = {
   ARRIVING: 'arriving',       // walking in from off-screen
@@ -223,6 +224,10 @@ function advance(boss, world, deltaSeconds) {
 function beginWindup(boss) {
   boss.windowDamage = 0;
   setState(boss, BOSS_STATE.WINDING_UP, 'WEAK POINT OPEN');
+
+  // A rising sting, so you can react to the window without having to be
+  // looking at him at that exact moment.
+  playWeakPointOpen();
 }
 
 function windUp(boss, deltaSeconds) {
@@ -231,6 +236,7 @@ function windUp(boss, deltaSeconds) {
 
   // Enough on the weak point and the charge never happens.
   if (boss.windowDamage >= cfg.interruptDamage) {
+    playBossStaggered();
     setState(boss, BOSS_STATE.STAGGERED, 'STAGGERED');
     return;
   }
@@ -250,6 +256,7 @@ function charge(boss, world, deltaSeconds) {
     // The whole room jumps. A charge that connects should be the loudest
     // thing that happens all night.
     addShake(world, CONFIG.juice.shakeOnBossSlam);
+    playBossSlam();
     for (let i = 0; i < 6; i++) {
       spawnSplinters(world, CONFIG.barricade.x + CONFIG.barricade.width, boss.y - 20 - i * 6);
     }
