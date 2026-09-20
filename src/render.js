@@ -22,6 +22,7 @@ import {
   getMoonVisibility,
   getSunRise,
   getDawnWashAlpha,
+  getAssaultSize,
 } from './night.js';
 
 export function drawScene(ctx, world, fps) {
@@ -42,8 +43,8 @@ export function drawScene(ctx, world, fps) {
   // sky instead of staying pitch dark behind a sunrise-coloured window.
   drawDawnWash(ctx, nightProgress);
 
-  if (world.waveBannerTimer > 0 && world.state === GAME_STATE.PLAYING) {
-    drawWaveBanner(ctx, world);
+  if (world.nightBannerTimer > 0 && world.state === GAME_STATE.PLAYING) {
+    drawNightBanner(ctx, world);
   }
 
   if (world.state === GAME_STATE.SHOP) {
@@ -251,30 +252,31 @@ function drawDawnWash(ctx, nightProgress) {
   ctx.fillRect(0, 0, CONFIG.screen.width, CONFIG.screen.height);
 }
 
-// "WAVE 3" across the middle of the screen when a new wave starts.
-//
-// It fades out over its last stretch rather than vanishing, so it doesn't
-// snap away mid-fight and pull your eye back to it.
-function drawWaveBanner(ctx, world) {
+// "NIGHT 3" across the middle of the screen as a shift begins, with how many
+// are coming. Fades out rather than snapping away mid-fight.
+function drawNightBanner(ctx, world) {
   const { width } = CONFIG.screen;
   const c = CONFIG.colors;
 
-  const remaining = world.waveBannerTimer;
-  const fadeOverSeconds = 0.6;
-  const fade = Math.min(remaining / fadeOverSeconds, 1);
+  const fadeOverSeconds = 0.8;
+  const fade = Math.min(world.nightBannerTimer / fadeOverSeconds, 1);
 
   ctx.save();
   ctx.globalAlpha = fade;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = '16px monospace';
 
-  // A hard offset shadow, which is how 8-bit games made text readable over
-  // a busy background without any blurring.
+  // A hard offset shadow, which is how 8-bit games made text readable over a
+  // busy background without any blurring.
+  ctx.font = '16px monospace';
   ctx.fillStyle = c.waveBannerShadow;
-  ctx.fillText(`WAVE ${world.waveIndex + 1}`, width / 2 + 1, 57);
+  ctx.fillText(`NIGHT ${world.day}`, width / 2 + 1, 53);
   ctx.fillStyle = c.waveBanner;
-  ctx.fillText(`WAVE ${world.waveIndex + 1}`, width / 2, 56);
+  ctx.fillText(`NIGHT ${world.day}`, width / 2, 52);
+
+  ctx.font = '8px monospace';
+  ctx.fillStyle = c.gameOverText;
+  ctx.fillText(`${getAssaultSize(world.day)} SCALPERS INCOMING`, width / 2, 68);
 
   ctx.restore();
   ctx.textAlign = 'left';
@@ -507,7 +509,7 @@ function drawDebugReadout(ctx, world, fps) {
     ctx.fillText(`stopped ${world.scalpersStopped}`, 4, 44);
     ctx.fillText(`packs ${world.machine.packsRemaining}`, 4, 54);
     ctx.fillText(
-      `day ${world.day}  wave ${world.waveIndex + 1}  ${Math.round(getNightProgress(world) * 100)}%  $${world.profile.cash}`,
+      `night ${world.day}  ${Math.round(getNightProgress(world) * 100)}%  in ${world.scalpersSpawnedTonight}/${getAssaultSize(world.day)}  $${world.profile.cash}`,
       4,
       64,
     );

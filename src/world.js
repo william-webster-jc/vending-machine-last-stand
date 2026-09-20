@@ -43,13 +43,11 @@ export function createWorld(profile) {
     // How far into tonight's shift we are. Sunrise is at night.durationSeconds.
     elapsedSeconds: 0,
 
-    // Wave bookkeeping, driven by night.js. -1 means no wave has started yet,
-    // so the first one triggers properly on the opening frame.
-    waveIndex: -1,
-    scalpersLeftInWave: 0,
-    spawnGapSeconds: 0,
-    spawnCountdown: 0,
-    waveBannerTimer: 0,
+    // The assault, driven by night.js. spawnBudget is a running fraction of
+    // a scalper: when it passes 1, one walks in.
+    scalpersSpawnedTonight: 0,
+    spawnBudget: 0,
+    nightBannerTimer: CONFIG.night.nightBannerSeconds,
 
     guard: {
       x: CONFIG.guard.startX,

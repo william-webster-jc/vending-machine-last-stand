@@ -311,33 +311,32 @@ export const CONFIG = {
   // ---------------------------------------------------------------------------
   night: {
     // How long one night lasts, in seconds. This is the single biggest dial
-    // on the whole game — it sets how long a run takes and how much punishment
-    // a night adds up to.
+    // on the whole game — it sets how long a run takes and how much
+    // punishment a night adds up to.
     durationSeconds: 120,
 
-    // The night is carved into this many equal slots, one wave each.
-    wavesPerNight: 5,
+    // How many scalpers turn up over the whole of night one.
+    //
+    // They arrive as ONE CONTINUOUS ASSAULT, not as separate waves with rests
+    // in between. A night is a wave. Night one is wave one.
+    assaultSizeOnNightOne: 80,
 
-    // Of each slot, how long scalpers actually arrive for. The rest of the
-    // slot is your breather — time to catch up, not time to relax.
-    waveSpawnSeconds: 15,
+    // Added to the assault for every night you survive. Night three brings
+    // 140 of them.
+    assaultGrowthPerNight: 30,
 
-    // How many scalpers in the first wave of night one.
-    firstWaveSize: 2,
+    // How much denser the end of the night is than the start. At 3, the last
+    // scalpers pour in three times as fast as the first ones trickled.
+    //
+    // This is the shape of the pressure: a manageable opening that builds
+    // into something you're barely holding as the sun comes up.
+    pressureBuildUp: 3,
 
-    // Added per wave as the night goes on: waves become 2, 4, 6, 8, 10.
-    waveSizeGrowth: 2,
+    // Scalpers get faster every night.
+    speedGrowthPerNight: 0.08,
 
-    // Added to EVERY wave for each night you survive, so night three is
-    // meaningfully harder than night one from its very first wave.
-    waveSizeGrowthPerDay: 2,
-
-    // Scalpers speed up as the night wears on, and across nights.
-    speedGrowthPerWave: 0.04,
-    speedGrowthPerDay: 0.08,
-
-    // How long the "WAVE 3" banner stays on screen.
-    waveBannerSeconds: 1.8,
+    // How long the "NIGHT 3" banner stays up when a shift begins.
+    nightBannerSeconds: 2.4,
   },
 
   // ---------------------------------------------------------------------------

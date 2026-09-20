@@ -1,10 +1,13 @@
 // =============================================================================
-// night.js — the shift clock, and the waves scheduled inside it.
+// night.js — the shift clock, and the assault that runs the length of it.
 //
-// A night runs for a fixed length of time and ends at sunrise, whether or not
-// you've cleared the floor. Waves are slotted into that window rather than
-// waiting to be cleared, and that's deliberate: it's what lets the SKY act as
-// the clock. If the night ended when you finished killing things, the sunrise
+// A NIGHT IS A WAVE. Night one is wave one. There are no sub-waves and no rest
+// breaks: scalpers pour in continuously from dusk to dawn, and the stream gets
+// heavier as the night wears on.
+//
+// The night runs for a fixed length of time and ends at sunrise whether or not
+// you've cleared the floor. That's deliberate — it's what lets the SKY be the
+// clock. If the night ended when you finished killing things, the sunrise
 // could never mean anything.
 // =============================================================================
 
@@ -21,11 +24,11 @@ export function getNightProgress(world) {
 export function updateNight(world, deltaSeconds) {
   world.elapsedSeconds += deltaSeconds;
 
-  if (world.waveBannerTimer > 0) {
-    world.waveBannerTimer -= deltaSeconds;
+  if (world.nightBannerTimer > 0) {
+    world.nightBannerTimer -= deltaSeconds;
   }
 
-  updateWaves(world, deltaSeconds);
+  updateAssault(world, deltaSeconds);
 
   if (getNightProgress(world) >= 1) {
     surviveTheNight(world);
@@ -33,67 +36,50 @@ export function updateNight(world, deltaSeconds) {
 }
 
 // -----------------------------------------------------------------------------
-// WAVES
+// THE ASSAULT
 // -----------------------------------------------------------------------------
 
-function updateWaves(world, deltaSeconds) {
-  const slotSeconds = CONFIG.night.durationSeconds / CONFIG.night.wavesPerNight;
+// How many scalpers turn up over the whole of a given night.
+export function getAssaultSize(day) {
+  const cfg = CONFIG.night;
+  return cfg.assaultSizeOnNightOne + (day - 1) * cfg.assaultGrowthPerNight;
+}
 
-  // Which slot of the night we're in. Clamped so the very last instant of the
-  // night doesn't tip over into a wave that doesn't exist.
-  const waveIndex = Math.min(
-    Math.floor(world.elapsedSeconds / slotSeconds),
-    CONFIG.night.wavesPerNight - 1,
-  );
+// How hard they're coming RIGHT NOW, relative to the night's average.
+//
+// This climbs steadily from a gentle opening to a frantic finish. Working in
+// "relative to average" rather than raw numbers is what lets the total for the
+// night stay exactly what getAssaultSize promised, whatever shape the curve is.
+function getPressure(nightProgress) {
+  const buildUp = CONFIG.night.pressureBuildUp;
 
-  if (waveIndex !== world.waveIndex) {
-    world.waveIndex = waveIndex;
-    startWave(world, waveIndex);
+  const pressureNow = 1 + (buildUp - 1) * nightProgress;
+  const averagePressure = (1 + buildUp) / 2;
+
+  return pressureNow / averagePressure;
+}
+
+function updateAssault(world, deltaSeconds) {
+  const total = getAssaultSize(world.day);
+  if (world.scalpersSpawnedTonight >= total) return;
+
+  const progress = getNightProgress(world);
+  const perSecond = (total / CONFIG.night.durationSeconds) * getPressure(progress);
+
+  // Arrivals are counted up as a running fraction rather than on a timer.
+  // When the fraction passes 1, someone walks in. That keeps the stream smooth
+  // at any rate, and handles rates above one per frame without dropping anyone.
+  world.spawnBudget += perSecond * deltaSeconds;
+
+  while (world.spawnBudget >= 1 && world.scalpersSpawnedTonight < total) {
+    spawnScalper(world, getSpeedMultiplier(world.day));
+    world.spawnBudget -= 1;
+    world.scalpersSpawnedTonight += 1;
   }
-
-  releaseScalpers(world, deltaSeconds);
 }
 
-function startWave(world, waveIndex) {
-  const count = getWaveSize(world.day, waveIndex);
-
-  world.scalpersLeftInWave = count;
-
-  // Spread the wave evenly across its spawn window, so they trickle in over
-  // the whole phase rather than all appearing at once.
-  world.spawnGapSeconds = CONFIG.night.waveSpawnSeconds / count;
-  world.spawnCountdown = 0;
-
-  world.waveBannerTimer = CONFIG.night.waveBannerSeconds;
-}
-
-function releaseScalpers(world, deltaSeconds) {
-  if (world.scalpersLeftInWave <= 0) return;
-
-  world.spawnCountdown -= deltaSeconds;
-  if (world.spawnCountdown > 0) return;
-
-  spawnScalper(world, getSpeedMultiplier(world.day, world.waveIndex));
-  world.scalpersLeftInWave -= 1;
-  world.spawnCountdown = world.spawnGapSeconds;
-}
-
-// Waves grow through the night AND across nights, so night three opens
-// harder than night one ever got.
-export function getWaveSize(day, waveIndex) {
-  const cfg = CONFIG.night;
-
-  return (
-    cfg.firstWaveSize +
-    waveIndex * cfg.waveSizeGrowth +
-    (day - 1) * cfg.waveSizeGrowthPerDay
-  );
-}
-
-function getSpeedMultiplier(day, waveIndex) {
-  const cfg = CONFIG.night;
-
-  return 1 + waveIndex * cfg.speedGrowthPerWave + (day - 1) * cfg.speedGrowthPerDay;
+function getSpeedMultiplier(day) {
+  return 1 + (day - 1) * CONFIG.night.speedGrowthPerNight;
 }
 
 // -----------------------------------------------------------------------------

@@ -130,9 +130,14 @@ GAME_OVER, and behaving completely differently in each.
 > Set it to 0 and touching the machine ends the run instantly. You'll decide by feel.
 
 ### M6 — Survive the night
+**A wave IS a night.** Night one is wave one. There are no sub-waves and no rest
+breaks — scalpers pour in as one continuous assault from dusk to dawn, and the
+stream gets heavier as the night wears on.
+
 **You get:** A night timer. The sky slowly lightens from black toward dawn, so you
-can always tell how much is left without reading a clock. Waves scale up as the night
-goes on. Sun fully up → **NIGHT SURVIVED**. Day counter increments.
+can always tell how much is left without reading a clock. The assault builds through
+the night and grows every night. Sun fully up → **NIGHT SURVIVED**. Day counter
+increments.
 **Done when:** You *want to beat your last night.* If you don't, we stop and tune
 `config.js` before building anything else. **This is the most important checkpoint in
 the entire plan.**
@@ -220,7 +225,7 @@ Distinct types, each demanding a different response:
 - **Bulk Buyer** — huge, shoves through, buys packs alarmingly fast
 - **Bot Swarm** — many tiny ones at once
 - **Line Cutter** — shoves other scalpers ahead of it, disrupting your aim priority
-**Done when:** A wave's *composition* changes how you play it, not just its size.
+**Done when:** A night's *composition* changes how you play it, not just its size.
 
 ### M15 — Weapons
 Pistol (infinite), shotgun (crowds at the barricade), SMG (dps, ammo hungry), railgun
@@ -236,8 +241,8 @@ mines in the breach zone, a repair drone that patches it mid-night.
 
 ### M17 — Bosses
 **Jace's note (from after M6):** bosses shouldn't only headline whole nights — big
-tanky ones should also turn up *inside* ordinary waves as a spike, not just every
-fifth night. Worth building the boss as an entity that can be dropped into any wave,
+tanky ones should also turn up *during* an ordinary night as a spike in the assault,
+not just every fifth night. Worth building the boss as an entity that can be dropped into any wave,
 then using that for both.
 
 Every 5th night, a named boss with a telegraphed attack pattern and a phase change at
