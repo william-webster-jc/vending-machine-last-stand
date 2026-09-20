@@ -64,6 +64,12 @@ export const TITLE_MENU_TOP_Y = 128;
 export function drawScene(ctx, world, fps) {
   const nightProgress = getNightProgress(world);
 
+  // The whole WORLD is shoved around by screen shake — but the HUD and menus
+  // below are drawn afterwards, outside it, so your ammo count never wobbles.
+  const shake = getShakeOffset(world);
+  ctx.save();
+  ctx.translate(shake.x, shake.y);
+
   drawBackWall(ctx, nightProgress);
   drawFloor(ctx);
 
@@ -76,6 +82,9 @@ export function drawScene(ctx, world, fps) {
   drawGrenades(ctx, world);
   drawBullets(ctx, world);
   drawExplosions(ctx, world);
+  drawParticles(ctx, world);
+
+  ctx.restore();
 
   // Warm dawn light over the whole mall, so the room brightens along with the
   // sky instead of staying pitch dark behind a sunrise-coloured window.
@@ -126,7 +135,15 @@ export function drawScene(ctx, world, fps) {
   }
 }
 
-// The mall's back wall, with windows showing the night sky outside.
+// The store, from the ceiling down to where the shelves meet the floor.
+//
+// The layout top to bottom: strip lights, a band of high windows, hanging
+// department signs, then shelving.
+//
+// Those windows are not decoration. They are the CLOCK — the only way you
+// know how much night is left — so the sky stays visible even though we're
+// indoors now. Big-box stores really do have windows up there, which is
+// convenient.
 function drawBackWall(ctx, nightProgress) {
   const { width } = CONFIG.screen;
   const { horizonY } = CONFIG.world;
@@ -140,82 +157,179 @@ function drawBackWall(ctx, nightProgress) {
   ctx.fillStyle = c.wallBack;
   ctx.fillRect(-bleed, -bleed, width + bleed * 2, horizonY + bleed);
 
-  // Trim band along the top of the wall
-  ctx.fillStyle = c.wallTrimUpper;
-  ctx.fillRect(-bleed, -bleed, width + bleed * 2, 8 + bleed);
-
+  drawCeiling(ctx, bleed);
   drawWindows(ctx, nightProgress);
+  drawHangingSigns(ctx);
+  drawShelving(ctx);
 
-  // Baseboard where the wall meets the floor
   ctx.fillStyle = c.wallBaseboard;
-  ctx.fillRect(-bleed, horizonY - 6, width + bleed * 2, 6);
+  ctx.fillRect(-bleed, horizonY - 5, width + bleed * 2, 5);
 }
 
-// Evenly spaced windows. Each one is a dark frame around a patch of night sky.
+// Suspended ceiling with fluorescent strips. Two tones on each strip so they
+// read as lit tubes rather than white rectangles.
+function drawCeiling(ctx, bleed) {
+  const { width } = CONFIG.screen;
+  const c = CONFIG.colors;
+
+  ctx.fillStyle = c.ceiling;
+  ctx.fillRect(-bleed, -bleed, width + bleed * 2, 14 + bleed);
+
+  // Ribs across the ceiling.
+  ctx.fillStyle = c.ceilingRib;
+  for (let x = -bleed; x < width + bleed; x += 14) {
+    ctx.fillRect(x, 0, 1, 14);
+  }
+
+  // The strip lights themselves, and the wash they throw on the wall below.
+  for (let x = 8; x < width; x += 62) {
+    ctx.fillStyle = c.fluorescentGlow;
+    ctx.fillRect(x - 1, 4, 34, 7);
+    ctx.fillStyle = c.fluorescent;
+    ctx.fillRect(x, 5, 32, 4);
+    ctx.fillStyle = c.fluorescentGlow;
+    ctx.fillRect(x + 2, 14, 28, 2);
+  }
+}
+
+// High windows along the back. The sky in them is the night's clock.
 function drawWindows(ctx, nightProgress) {
   const { width } = CONFIG.screen;
   const c = CONFIG.colors;
 
-  const windowWidth = 34;
-  const windowHeight = 44;
-  const windowY = 22;
-  const gap = 24;
+  const windowY = 20;
+  const windowHeight = 22;
+  const windowWidth = 46;
+  const gap = 16;
   const step = windowWidth + gap;
-
-  // Start far enough left that the row looks centred across the screen.
-  const windowCount = Math.floor(width / step) + 1;
-  const rowWidth = windowCount * step - gap;
-  const startX = Math.round((width - rowWidth) / 2);
 
   const sky = getSkyState(nightProgress);
   const skyColor = mixColors(sky.earlierColor, sky.laterColor, sky.blend);
   const moonVisibility = getMoonVisibility(nightProgress);
   const sunRise = getSunRise(nightProgress);
 
-  // Stars and the moon fade by being mixed TOWARD the sky behind them, rather
-  // than by going transparent. At this size that reads better, and it keeps
+  // Stars and the moon fade by being mixed TOWARD the sky behind them rather
+  // than going transparent. At this size that reads better, and it keeps
   // everything to flat opaque pixels like the rest of the game.
   const starColor = mixColors(skyColor, c.star, sky.starVisibility);
   const moonColor = mixColors(skyColor, c.moon, moonVisibility);
 
-  for (let i = 0; i < windowCount; i++) {
+  const count = Math.ceil(width / step) + 1;
+  const startX = Math.round((width - (count * step - gap)) / 2);
+
+  for (let i = 0; i < count; i++) {
     const x = startX + i * step;
     if (x + windowWidth < 0 || x > width) continue;
 
-    // Frame
     ctx.fillStyle = c.windowFrame;
     ctx.fillRect(x - 2, windowY - 2, windowWidth + 4, windowHeight + 4);
 
-    // The sky itself — this is the clock.
     ctx.fillStyle = skyColor;
     ctx.fillRect(x, windowY, windowWidth, windowHeight);
 
-    // Stars, placed by a fixed pattern so they don't flicker between frames.
     if (sky.starVisibility > 0.02) {
       ctx.fillStyle = starColor;
-      ctx.fillRect(x + 6 + (i % 3) * 5, windowY + 8, 1, 1);
-      ctx.fillRect(x + 22 - (i % 2) * 6, windowY + 17, 1, 1);
-      ctx.fillRect(x + 12 + (i % 4) * 3, windowY + 31, 1, 1);
+      ctx.fillRect(x + 7 + (i % 3) * 6, windowY + 5, 1, 1);
+      ctx.fillRect(x + 30 - (i % 2) * 8, windowY + 12, 1, 1);
+      ctx.fillRect(x + 17 + (i % 4) * 4, windowY + 17, 1, 1);
     }
 
-    // The moon sits in one window only, and sets as the night wears on.
     if (i === 1 && moonVisibility > 0.02) {
       ctx.fillStyle = moonColor;
-      ctx.fillRect(x + 22, windowY + 6, 6, 6);
+      ctx.fillRect(x + 30, windowY + 4, 6, 6);
       ctx.fillStyle = skyColor;
-      ctx.fillRect(x + 20, windowY + 5, 4, 5);
+      ctx.fillRect(x + 28, windowY + 3, 4, 5);
     }
 
-    // The sun climbs in a different window, late on. Seeing it clear the sill
-    // is how you know you're nearly through the shift.
     if (i === 4 && sunRise > 0) {
       drawRisingSun(ctx, x, windowY, windowWidth, windowHeight, sunRise);
     }
 
-    // Window cross-bars
+    // Mullions.
     ctx.fillStyle = c.windowFrame;
-    ctx.fillRect(x + windowWidth / 2 - 1, windowY, 2, windowHeight);
-    ctx.fillRect(x, windowY + windowHeight / 2 - 1, windowWidth, 2);
+    ctx.fillRect(x + Math.round(windowWidth / 2) - 1, windowY, 2, windowHeight);
+  }
+}
+
+// Department signs hanging on poles from the ceiling. The lettering is
+// deliberately illegible blocks — at this size real words would be mush, and
+// a blue sign with white bars reads as retail signage instantly.
+function drawHangingSigns(ctx) {
+  const { width } = CONFIG.screen;
+  const c = CONFIG.colors;
+
+  const signY = 50;
+  const signWidth = 40;
+  const signHeight = 13;
+
+  for (let i = 0; i < 4; i++) {
+    const x = 26 + i * 96;
+    if (x > width) continue;
+
+    // Pole up to the ceiling.
+    ctx.fillStyle = c.signPole;
+    ctx.fillRect(x + 8, 14, 1, signY - 14);
+    ctx.fillRect(x + signWidth - 9, 14, 1, signY - 14);
+
+    ctx.fillStyle = c.signBlueDark;
+    ctx.fillRect(x - 1, signY - 1, signWidth + 2, signHeight + 2);
+    ctx.fillStyle = c.signBlue;
+    ctx.fillRect(x, signY, signWidth, signHeight);
+
+    // A bay number block and a line of "text".
+    ctx.fillStyle = c.signText;
+    ctx.fillRect(x + 3, signY + 3, 7, 7);
+    for (let bar = 0; bar < 4; bar++) {
+      ctx.fillRect(x + 13 + bar * 6, signY + 4, 4, 2);
+      ctx.fillRect(x + 13 + bar * 6, signY + 8, 3, 2);
+    }
+  }
+}
+
+// Gondola shelving along the back wall, stacked with product.
+//
+// The product is just coloured blocks in rows, but varying their height and
+// colour per column is what stops it reading as wallpaper.
+function drawShelving(ctx) {
+  const { width } = CONFIG.screen;
+  const { horizonY } = CONFIG.world;
+  const c = CONFIG.colors;
+
+  const shelfTop = 68;
+  const shelfBottom = horizonY - 5;
+  const rowHeight = 13;
+
+  ctx.fillStyle = c.shelfBack;
+  ctx.fillRect(0, shelfTop, width, shelfBottom - shelfTop);
+
+  // Upright frames every so often, so it reads as separate bays.
+  ctx.fillStyle = c.shelfFrameDark;
+  for (let x = 0; x < width; x += 48) {
+    ctx.fillRect(x, shelfTop, 3, shelfBottom - shelfTop);
+  }
+
+  let row = 0;
+  for (let y = shelfTop + 2; y + rowHeight <= shelfBottom; y += rowHeight) {
+    // Product sitting on this shelf.
+    for (let x = 4; x < width - 3; x += 7) {
+      // A fixed scramble rather than random, so the store doesn't reshuffle
+      // itself every frame.
+      const pick = (x * 7 + row * 13) % c.productColors.length;
+      const tall = (x + row) % 3 === 0;
+
+      ctx.fillStyle = c.productColors[pick];
+      ctx.fillRect(x, y + (tall ? 1 : 3), 5, rowHeight - (tall ? 5 : 7));
+      ctx.fillStyle = c.shelfShadow;
+      ctx.fillRect(x, y + rowHeight - 4, 5, 1);
+    }
+
+    // The shelf itself.
+    ctx.fillStyle = c.shelfFrame;
+    ctx.fillRect(0, y + rowHeight - 3, width, 2);
+    ctx.fillStyle = c.shelfFrameDark;
+    ctx.fillRect(0, y + rowHeight - 1, width, 1);
+
+    row++;
   }
 }
 
@@ -242,36 +356,6 @@ function drawRisingSun(ctx, x, windowY, windowWidth, windowHeight, rise) {
   // out of the horizon rather than floating in front of the frame.
   ctx.fillStyle = CONFIG.colors.wallBack;
   ctx.fillRect(x - 2, windowY + windowHeight, windowWidth + 4, sunRadius + 3);
-}
-
-// Checkerboard mall tiles.
-function drawFloor(ctx) {
-  const { width, height } = CONFIG.screen;
-  const { horizonY, tileSize } = CONFIG.world;
-  const c = CONFIG.colors;
-
-  const bleed = CONFIG.juice.shakeMax + 2;
-
-  for (let y = horizonY; y < height + bleed; y += tileSize) {
-    for (let x = -tileSize; x < width + bleed; x += tileSize) {
-      const tileRow = Math.floor((y - horizonY) / tileSize);
-      const tileCol = Math.floor(x / tileSize);
-      const isDarkTile = (tileRow + tileCol) % 2 === 0;
-
-      ctx.fillStyle = isDarkTile ? c.floorDark : c.floorLight;
-      ctx.fillRect(x, y, tileSize, tileSize);
-
-      // Grout line along the top and left edge of each tile
-      ctx.fillStyle = c.floorGrout;
-      ctx.fillRect(x, y, tileSize, 1);
-      ctx.fillRect(x, y, 1, tileSize);
-    }
-  }
-
-  // Darker band right at the wall, so the floor looks like it recedes into
-  // shadow rather than stopping dead.
-  ctx.fillStyle = c.floorContactShadow;
-  ctx.fillRect(-bleed, horizonY, width + bleed * 2, 3);
 }
 
 // Everybody standing on the floor, drawn back-to-front.
@@ -320,6 +404,46 @@ function drawCrosshair(ctx) {
   ctx.fillRect(x + 3, y, 3, 1);
   ctx.fillRect(x, y - 5, 1, 3);
   ctx.fillRect(x, y + 3, 1, 3);
+}
+
+// Polished store floor: big pale tiles, with a sheen streak under each strip
+// light. The sheen is what sells "waxed floor under fluorescents" rather than
+// "grey squares".
+function drawFloor(ctx) {
+  const { width, height } = CONFIG.screen;
+  const { horizonY, tileSize } = CONFIG.world;
+  const c = CONFIG.colors;
+
+  const bleed = CONFIG.juice.shakeMax + 2;
+
+  for (let y = horizonY; y < height + bleed; y += tileSize) {
+    for (let x = -tileSize; x < width + bleed; x += tileSize) {
+      const tileRow = Math.floor((y - horizonY) / tileSize);
+      const tileCol = Math.floor(x / tileSize);
+      const isDarkTile = (tileRow + tileCol) % 2 === 0;
+
+      ctx.fillStyle = isDarkTile ? c.floorDark : c.floorLight;
+      ctx.fillRect(x, y, tileSize, tileSize);
+
+      ctx.fillStyle = c.floorGrout;
+      ctx.fillRect(x, y, tileSize, 1);
+      ctx.fillRect(x, y, 1, tileSize);
+    }
+  }
+
+  // Reflections of the strip lights, fading as they stretch toward you.
+  for (let x = 10; x < width; x += 62) {
+    for (let i = 0; i < 5; i++) {
+      const y = horizonY + 4 + i * 7;
+      if (y > height) break;
+      ctx.fillStyle = i < 2 ? c.floorSheen : c.floorLight;
+      ctx.fillRect(x + i, y, 28 - i * 4, 1);
+    }
+  }
+
+  // Contact shadow where the shelving meets the floor.
+  ctx.fillStyle = c.floorContactShadow;
+  ctx.fillRect(-bleed, horizonY, width + bleed * 2, 3);
 }
 
 // Warm light spilling over the mall as the sun comes up.

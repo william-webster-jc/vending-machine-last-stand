@@ -41,10 +41,10 @@ export const CONFIG = {
   // footY is where its base rests on the floor.
   // ---------------------------------------------------------------------------
   machine: {
-    x: 20,
-    width: 50,
-    height: 66,
-    footY: 146,
+    x: 16,
+    width: 64,
+    height: 88,
+    footY: 148,
 
     // How many packs are inside. This is your SECOND health bar: scalpers who
     // reach the machine buy them one at a time, and when the last one goes,
@@ -58,7 +58,7 @@ export const CONFIG = {
     // Drop this to 0.2 and reaching the machine is close to instant death.
     packPurchaseSeconds: 2.2,
 
-    stockBarWidth: 44,
+    stockBarWidth: 52,
     stockBarHeight: 4,
     stockBarOffsetY: 10,
   },
@@ -374,26 +374,62 @@ export const CONFIG = {
     star: '#f4f0d8',
     moon: '#f7f3d9',
 
-    // Mall interior back wall
-    wallBack: '#3c3556',
-    wallTrimUpper: '#4e4670',
-    wallBaseboard: '#2a2440',
-    windowFrame: '#241f38',
+    // THE STORE. Big-box retail at 3am: bright fittings, dead air, and a
+    // polished floor that reflects the strip lights.
+    ceiling: '#2c313c',
+    ceilingRib: '#3a404d',
+    fluorescent: '#fff8d8',
+    fluorescentGlow: '#8f8d6e',
 
-    // Floor tiles
-    floorLight: '#cba97c',
-    floorDark: '#b08f63',
-    floorGrout: '#93785a',
-    floorContactShadow: '#7d654a',
+    wallBack: '#d8dce4',
+    wallTrimUpper: '#b9bfcb',
+    wallBaseboard: '#6f7684',
+    windowFrame: '#5a6170',
+
+    // Hanging department signs
+    signBlue: '#0b6fc4',
+    signBlueDark: '#064a86',
+    signText: '#f2f6ff',
+    signPole: '#6f7684',
+
+    // Shelving and the product on it
+    shelfFrame: '#aab1bd',
+    shelfFrameDark: '#7c8391',
+    shelfBack: '#c3c9d3',
+    shelfShadow: '#9aa1ae',
+    productColors: [
+      '#d8443c', '#e88a2a', '#e8c53a', '#4aa84a',
+      '#3a78c4', '#8a4fc0', '#d86aa0', '#3fb0b8',
+    ],
+
+    // Polished floor
+    floorLight: '#c6cad2',
+    floorDark: '#b6bbc4',
+    floorGrout: '#a2a8b3',
+    floorContactShadow: '#8b919d',
+    floorSheen: '#dde1e8',
 
     // Vending machine
     machineBody: '#d6403f',
     machineDark: '#8d2020',
     machineTrim: '#f4f1e4',
-    machineGlass: '#27375c',
-    machineGlassShine: '#4d6da0',
-    machineSlot: '#1a1626',
-    packColors: ['#f3c44f', '#4fcbb0', '#e46fa9', '#6aa8f4', '#f58d4f', '#b581ef'],
+    machineGlass: '#16203a',
+    machineGlassShine: '#5f83c0',
+    machineSlot: '#0f1220',
+
+    // Booster packs. Each one is a foil wrapper: a hang tab at the top, a
+    // bright art panel, a title stripe and a dark foot. Every pack gets a
+    // different art colour from this list so a full machine looks stocked
+    // rather than tiled.
+    packFoil: '#e8ecf5',
+    packFoilShine: '#ffffff',
+    packEdge: '#2a2f42',
+    packStripe: '#1d2440',
+    packTab: '#c4cad8',
+    packColors: [
+      '#e0434f', '#f0913a', '#f5d63f', '#4fbf5a',
+      '#3f8fe0', '#9a5fd8', '#e05fa8', '#3fc4c4',
+    ],
 
     // Barricade
     barricadeWood: '#8c5c33',
