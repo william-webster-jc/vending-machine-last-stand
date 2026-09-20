@@ -14,6 +14,7 @@ import { drawScene } from './render.js';
 import { updateGuard } from './entities/guard.js';
 import { updateBullets } from './entities/bullet.js';
 import { updateGrenades } from './entities/grenade.js';
+import { updateHires } from './entities/hire.js';
 import { getOwnedWeapons, beginReload, switchWeapon } from './weapons.js';
 import { updateScalpers } from './entities/scalper.js';
 import { updateMachine } from './entities/machine.js';
@@ -322,6 +323,7 @@ function updatePlaying(deltaSeconds) {
   updateNight(world, deltaSeconds);
 
   updateGuard(world.guard, world, deltaSeconds);
+  updateHires(world, deltaSeconds);
   updateScalpers(world, deltaSeconds);
   updateBullets(world, deltaSeconds);
   updateGrenades(world, deltaSeconds);
@@ -358,6 +360,18 @@ function updateBetweenNights(deltaSeconds) {
 // shop. The day only ticks over once you clock on again.
 function collectPayAndOpenShop() {
   profile.cash += world.payslip.total;
+
+  // A crew you can't pay doesn't stay. Rather than letting you run a negative
+  // balance, the most recent hire walks — which is exactly the pressure that
+  // makes staffing up a real decision rather than a free upgrade.
+  if (profile.cash < 0) {
+    profile.cash = 0;
+    if (profile.hiredGuards > 0) {
+      profile.hiredGuards -= 1;
+      world.someoneQuit = true;
+    }
+  }
+
   profile.totalScalpersStopped += world.finalStats.scalpersStopped;
   profile.nightsSurvived += 1;
 

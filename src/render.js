@@ -9,11 +9,18 @@
 import { CONFIG } from './config.js';
 import { drawMachine } from './entities/machine.js';
 import { drawBarricade } from './entities/barricade.js';
-import { drawGuard } from './entities/guard-art.js';
+import { drawGuard, getHirePalette } from './entities/guard-art.js';
 import { drawScalper } from './entities/scalper-art.js';
 import { drawBullets } from './entities/bullet.js';
 import { drawGrenades, drawExplosions } from './entities/grenade.js';
-import { getWeapon, getRoundsLeft, isReloading, getReloadProgress } from './weapons.js';
+import {
+  getWeapon,
+  getRoundsLeft,
+  isReloading,
+  getReloadProgress,
+  ownsWeapon,
+} from './weapons.js';
+import { drawWeaponIcon, getIconSize } from './weapon-icons.js';
 import { getMousePosition } from './input.js';
 import { GAME_STATE } from './world.js';
 import { getShopRows } from './shop.js';
@@ -57,7 +64,7 @@ export function drawScene(ctx, world, fps) {
   drawDawnWash(ctx, nightProgress);
 
   if (world.state === GAME_STATE.PLAYING || world.state === GAME_STATE.PAUSED) {
-    drawAmmoReadout(ctx, world);
+    drawWeaponBar(ctx, world);
   }
 
   if (world.nightBannerTimer > 0 && world.state === GAME_STATE.PLAYING) {
@@ -245,6 +252,13 @@ function drawCharacters(ctx, world) {
     { y: world.guard.y, draw: () => drawGuard(ctx, world.guard) },
   ];
 
+  // Hired guards are drawn by the exact same code as you, just handed a
+  // different set of colours.
+  const hirePalette = getHirePalette();
+  for (const hire of world.hires) {
+    everyone.push({ y: hire.y, draw: () => drawGuard(ctx, hire, hirePalette) });
+  }
+
   for (const scalper of world.scalpers) {
     everyone.push({ y: scalper.y, draw: () => drawScalper(ctx, scalper) });
   }
@@ -357,41 +371,82 @@ function drawNightSurvivedScreen(ctx, world) {
 // TITLE, PAUSE, INSTRUCTIONS AND OPTIONS
 // =============================================================================
 
-// The gun in your hands and what's left in it, bottom right.
+// The weapon bar, bottom right: one slot per weapon in the game, always all
+// of them. Locked slots stay visible and empty so you can see what there is
+// to buy and which number it'll be — the numbers never shuffle around as you
+// unlock things.
+function drawWeaponBar(ctx, world) {
+  const { width, height } = CONFIG.screen;
+  const guard = world.guard;
+
+  const slotWidth = 18;
+  const slotHeight = 15;
+  const gap = 2;
+
+  const totalWidth = CONFIG.weapons.length * slotWidth + (CONFIG.weapons.length - 1) * gap;
+  const startX = width - 4 - totalWidth;
+  const slotY = height - 4 - slotHeight;
+
+  CONFIG.weapons.forEach((weapon, index) => {
+    const x = startX + index * (slotWidth + gap);
+    const owned = ownsWeapon(world.profile, weapon.id);
+    const active = guard.weaponId === weapon.id;
+
+    drawWeaponSlot(ctx, weapon, x, slotY, slotWidth, slotHeight, index, owned, active);
+  });
+
+  drawAmmoReadout(ctx, world, width - 4, slotY - 11);
+}
+
+function drawWeaponSlot(ctx, weapon, x, y, slotWidth, slotHeight, index, owned, active) {
+  const c = CONFIG.colors;
+
+  ctx.fillStyle = active ? c.slotEdgeActive : c.slotEdge;
+  ctx.fillRect(x - 1, y - 1, slotWidth + 2, slotHeight + 2);
+
+  ctx.fillStyle = owned ? c.slotFilled : c.slotEmpty;
+  ctx.fillRect(x, y, slotWidth, slotHeight);
+
+  drawText(ctx, `${index + 1}`, x + 2, y + 2, {
+    color: active ? c.slotNumberActive : c.slotNumber,
+  });
+
+  // Empty slots stay empty. Seeing a blank 3 and 4 is what tells you there's
+  // more to buy without spoiling what it looks like.
+  if (!owned) return;
+
+  const icon = getIconSize();
+  drawWeaponIcon(
+    ctx,
+    weapon.id,
+    x + Math.round((slotWidth - icon.width) / 2) + 1,
+    y + Math.round((slotHeight - icon.height) / 2),
+  );
+}
+
+// What's left in the gun you're holding, sitting just above the slots.
 //
 // Rounds are drawn as individual ticks rather than a number, because at a
 // glance "nearly empty" is what matters, not the exact count. Above about
 // twenty rounds that stops being readable, so those fall back to a figure.
-function drawAmmoReadout(ctx, world) {
-  const { width, height } = CONFIG.screen;
+function drawAmmoReadout(ctx, world, right, baseY) {
   const c = CONFIG.colors;
   const guard = world.guard;
   const weapon = getWeapon(guard.weaponId);
   const rounds = getRoundsLeft(guard);
 
-  const right = width - 5;
-  const baseY = height - 22;
-
-  drawText(ctx, weapon.name, right, baseY, {
-    color: c.ammoFull,
-    outlineColor: c.inkOutline,
-    bold: true,
-    align: 'right',
-  });
-
   if (isReloading(guard)) {
-    const barWidth = 46;
+    const barWidth = 52;
     const barX = right - barWidth;
-    const barY = baseY + 11;
 
     ctx.fillStyle = c.inkOutline;
-    ctx.fillRect(barX - 1, barY - 1, barWidth + 2, 5);
+    ctx.fillRect(barX - 1, baseY + 1, barWidth + 2, 6);
     ctx.fillStyle = c.reloadBarTrack;
-    ctx.fillRect(barX, barY, barWidth, 3);
+    ctx.fillRect(barX, baseY + 2, barWidth, 4);
     ctx.fillStyle = c.reloadBar;
-    ctx.fillRect(barX, barY, Math.round(barWidth * getReloadProgress(guard)), 3);
+    ctx.fillRect(barX, baseY + 2, Math.round(barWidth * getReloadProgress(guard)), 4);
 
-    drawText(ctx, 'RELOADING', right - barWidth - 4, baseY + 9, {
+    drawText(ctx, 'RELOADING', barX - 4, baseY, {
       color: c.reloadBar,
       outlineColor: c.inkOutline,
       align: 'right',
@@ -406,18 +461,19 @@ function drawAmmoReadout(ctx, world) {
     for (let i = 0; i < weapon.magazineSize; i++) {
       const x = right - 3 - i * 4;
       ctx.fillStyle = c.inkOutline;
-      ctx.fillRect(x - 1, baseY + 10, 4, 7);
+      ctx.fillRect(x - 1, baseY, 4, 8);
       ctx.fillStyle = i < rounds ? color : c.reloadBarTrack;
-      ctx.fillRect(x, baseY + 11, 2, 5);
+      ctx.fillRect(x, baseY + 1, 2, 6);
     }
-  } else {
-    drawText(ctx, `${rounds} / ${weapon.magazineSize}`, right, baseY + 11, {
-      color,
-      outlineColor: c.inkOutline,
-      bold: true,
-      align: 'right',
-    });
+    return;
   }
+
+  drawText(ctx, `${rounds} / ${weapon.magazineSize}`, right, baseY + 1, {
+    color,
+    outlineColor: c.inkOutline,
+    bold: true,
+    align: 'right',
+  });
 }
 
 // Menu screens get their own backdrop — a checked field, like the reference —
@@ -649,6 +705,15 @@ function drawShopScreen(ctx, world) {
     color: c.gameOverDim,
     outlineColor: c.inkOutline,
   });
+
+  // You only find out someone walked when you get here, because that's when
+  // payroll actually ran.
+  if (world.someoneQuit) {
+    drawText(ctx, 'COULDNT MAKE PAYROLL - A GUARD QUIT', width / 2, 24, {
+      color: c.cashShort,
+      align: 'center',
+    });
+  }
   drawText(ctx, `CASH ${profile.cash}`, width - 30, 24, {
     color: c.cash,
     outlineColor: c.inkOutline,
@@ -660,12 +725,12 @@ function drawShopScreen(ctx, world) {
   rows.forEach((row, index) => drawShopRow(ctx, row, index, world));
 
   const lastRow = getShopRowBox(rows.length - 1);
-  drawText(ctx, `CLICK OR PRESS 1-${rows.length} TO BUY`, width / 2, lastRow.y + 24, {
+  drawText(ctx, `CLICK OR PRESS 1-${rows.length} TO BUY`, width / 2, lastRow.y + 22, {
     color: c.gameOverHint,
     outlineColor: c.inkOutline,
     align: 'center',
   });
-  drawText(ctx, `ENTER - START NIGHT ${profile.day}`, width / 2, lastRow.y + 34, {
+  drawText(ctx, `ENTER - START NIGHT ${profile.day}`, width / 2, lastRow.y + 32, {
     color: c.gameOverText,
     outlineColor: c.inkOutline,
     align: 'center',
@@ -676,15 +741,15 @@ function drawShopScreen(ctx, world) {
 // this, so a row can never be drawn somewhere you can't click it.
 // The shop now lists repair, three weapons and four upgrades, so rows are
 // tight. Both the drawing and the clicking read these same numbers.
-const SHOP_ROW_TOP = 36;
-const SHOP_ROW_SPACING = 20;
+const SHOP_ROW_TOP = 34;
+const SHOP_ROW_SPACING = 18;
 
 export function getShopRowBox(index) {
   return {
     x: 30,
     y: SHOP_ROW_TOP + index * SHOP_ROW_SPACING,
     width: CONFIG.screen.width - 60,
-    height: 18,
+    height: 16,
   };
 }
 
@@ -715,7 +780,7 @@ function drawShopRow(ctx, row, index, world) {
     bold: true,
   });
 
-  drawText(ctx, row.detail, box.x + 12, box.y + 10, { color: detailColor });
+  drawText(ctx, row.detail, box.x + 12, box.y + 9, { color: detailColor });
 
   // Price on the right, red when you can't afford it.
   const priceX = box.x + box.width - 4;

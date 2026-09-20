@@ -14,7 +14,7 @@
 import { CONFIG } from './config.js';
 import { spawnScalper } from './entities/scalper.js';
 import { GAME_STATE } from './world.js';
-import { calculatePay } from './shop.js';
+import { calculatePay, getNightlyWages } from './shop.js';
 import { getDifficulty } from './settings.js';
 
 // How far through the night we are, from 0 at dusk to 1 at full sunrise.
@@ -105,7 +105,7 @@ function surviveTheNight(world) {
   // The payslip is worked out at sunrise and kept, so the screen shows what
   // you actually earned rather than recalculating from a world that's about
   // to be replaced.
-  world.payslip = calculatePay(world.finalStats);
+  world.payslip = calculatePay(world.finalStats, getNightlyWages(world.profile));
 }
 
 // -----------------------------------------------------------------------------

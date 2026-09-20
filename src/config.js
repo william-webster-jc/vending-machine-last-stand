@@ -401,6 +401,25 @@ export const CONFIG = {
     gameOverDim: '#9a93ad',
     gameOverHint: '#7ae0b0',
 
+    // Hired guards — same uniform, different colours, so they read as
+    // colleagues rather than as a different species.
+    hireUniform: '#2f7a5c',
+    hireUniformDark: '#1d5440',
+    hireCap: '#14382c',
+
+    // Weapon slot bar
+    slotEmpty: '#14182c',
+    slotFilled: '#232a4a',
+    slotEdge: '#3a4470',
+    slotEdgeActive: '#ffe27a',
+    slotNumber: '#6d779e',
+    slotNumberActive: '#ffe27a',
+    iconMetal: '#8a93ad',
+    iconMetalLight: '#ccd3e5',
+    iconMetalDark: '#525a78',
+    iconGrip: '#8a5a32',
+    iconBrass: '#e0b040',
+
     // Ammo readout and grenades
     ammoFull: '#e8ecf5',
     ammoLow: '#f0a03c',
@@ -591,6 +610,41 @@ export const CONFIG = {
         costGrowth: 35,
       },
     ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // HIRED HELP
+  //
+  // Guards you interview and take on. They hold a post and shoot on their own.
+  //
+  // The tension is the wages: they cost money up front AND every night after,
+  // so a big crew eats the paycheck that would have bought you upgrades. Hire
+  // too many and you can't afford to keep them.
+  // ---------------------------------------------------------------------------
+  help: {
+    maxHires: 4,
+
+    // The first interview is cheap; each one after costs more, because good
+    // people are harder to find at 2am.
+    hireBaseCost: 170,
+    hireCostGrowth: 130,
+
+    // Paid out of every night's wages, per guard, forever.
+    wagePerNight: 42,
+
+    // They're worse shots than you: less damage, slower, sloppier. They're
+    // extra bodies, not a replacement for playing well.
+    damage: 7,
+    fireIntervalSeconds: 0.62,
+    // Far enough that a guard posted at the back of the floor can still cover
+    // the barricade. Any shorter and the rear posts never fire.
+    range: 175,
+    bulletSpeed: 380,
+    spreadDegrees: 7,
+
+    // How long after spotting someone before they open fire, so a fresh
+    // target isn't hit the instant it walks into range.
+    reactionSeconds: 0.25,
   },
 
   // ---------------------------------------------------------------------------

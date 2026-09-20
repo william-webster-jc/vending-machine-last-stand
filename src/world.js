@@ -14,6 +14,7 @@ import { CONFIG } from './config.js';
 import { createBarricade } from './entities/barricade.js';
 import { getStats } from './shop.js';
 import { createMagazines, getStartingWeaponId } from './weapons.js';
+import { createHires } from './entities/hire.js';
 
 export const GAME_STATE = {
   TITLE: 'title',
@@ -76,6 +77,9 @@ export function createWorld(profile) {
 
     // Every bullet currently in the air.
     bullets: [],
+
+    // The guards you've taken on, stood at their posts.
+    hires: createHires(profile.hiredGuards),
 
     // Grenades in the air, and the blasts they leave behind.
     grenades: [],

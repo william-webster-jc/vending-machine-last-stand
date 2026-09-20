@@ -313,7 +313,7 @@ Nothing blocking. Noted here so they don't get lost:
 
 ## Status
 
-Phase 1 in progress. Next up: **M9 — Interviews: hire help**.
+**PHASE 1 COMPLETE.** Next up: **Phase 2 — juice, real pixel art, sound, HUD polish**.
 
 **M15 (Weapons) was pulled forward and is now done** — ammo, reload, and the
 pistol / shotgun / uzi / grenades roster all landed early at Jace's request.
@@ -330,5 +330,5 @@ rather than the basics.
 | M6 Survive the night | ☑ |
 | M7 Paycheck and upgrades | ☑ |
 | M8 Title screen | ☑ |
-| M9 Interviews: hire help | ☐ |
+| M9 Interviews: hire help | ☑ |
 | M10–M23 | ☐ |

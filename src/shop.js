@@ -25,6 +25,9 @@ export function createProfile() {
     // Weapons you've bought. The pistol isn't in here — you always have it.
     ownedWeapons: [],
 
+    // How many guards are on the payroll.
+    hiredGuards: 0,
+
     // How much barricade health you carry INTO tonight. null means "full",
     // which is how a brand new career starts.
     //
@@ -36,6 +39,16 @@ export function createProfile() {
     totalScalpersStopped: 0,
     nightsSurvived: 0,
   };
+}
+
+// What the next interview costs. Each hire is dearer than the last.
+export function getHireCost(profile) {
+  const cfg = CONFIG.help;
+  return cfg.hireBaseCost + profile.hiredGuards * cfg.hireCostGrowth;
+}
+
+export function getNightlyWages(profile) {
+  return profile.hiredGuards * CONFIG.help.wagePerNight;
 }
 
 export function getUpgradeLevel(profile, id) {
@@ -85,7 +98,7 @@ function findItem(id) {
 // -----------------------------------------------------------------------------
 
 // Work out the night's wages, itemised so the payslip can show its working.
-export function calculatePay(stats) {
+export function calculatePay(stats, wages = 0) {
   const cfg = CONFIG.economy;
 
   const lines = [
@@ -96,6 +109,12 @@ export function calculatePay(stats) {
 
   if (stats.barricadeHeld) {
     lines.push(['BARRICADE HELD', cfg.barricadeHeldBonus]);
+  }
+
+  // Wages come straight off the top. A crew you can't afford is the whole
+  // tension of hiring.
+  if (wages > 0) {
+    lines.push(['WAGES', -wages]);
   }
 
   const total = lines.reduce((sum, [, amount]) => sum + amount, 0);
@@ -145,6 +164,22 @@ export function getShopRows(profile) {
     affordable: repairCost > 0 && profile.cash >= repairCost,
   });
 
+  // Interviews.
+  const hireCost = getHireCost(profile);
+  const atMaxCrew = profile.hiredGuards >= CONFIG.help.maxHires;
+
+  rows.push({
+    id: 'hire',
+    name: 'INTERVIEW A GUARD',
+    detail: atMaxCrew
+      ? `CREW OF ${profile.hiredGuards} - FULL`
+      : `CREW ${profile.hiredGuards}/${CONFIG.help.maxHires}   WAGES ${getNightlyWages(profile) + CONFIG.help.wagePerNight}/NIGHT`,
+    cost: hireCost,
+    maxed: atMaxCrew,
+    maxedLabel: 'FULL',
+    affordable: !atMaxCrew && profile.cash >= hireCost,
+  });
+
   // Weapons you don't own yet, offered for sale.
   for (const weapon of CONFIG.weapons) {
     if (weapon.cost === 0) continue;
@@ -184,6 +219,7 @@ export function getShopRows(profile) {
 // caller knows whether to play a sound or shake the screen.
 export function buyUpgrade(profile, id) {
   if (id === 'repair') return buyRepair(profile);
+  if (id === 'hire') return hireGuard(profile);
   if (id.startsWith('weapon:')) return buyWeapon(profile, id.slice(7));
 
   const item = findItem(id);
@@ -201,6 +237,17 @@ export function buyUpgrade(profile, id) {
   // Reinforcing raises the ceiling but doesn't patch the holes — the new
   // health has to be repaired like any other missing health. Otherwise
   // reinforcing would quietly be a free repair too.
+  return true;
+}
+
+function hireGuard(profile) {
+  if (profile.hiredGuards >= CONFIG.help.maxHires) return false;
+
+  const cost = getHireCost(profile);
+  if (profile.cash < cost) return false;
+
+  profile.cash -= cost;
+  profile.hiredGuards += 1;
   return true;
 }
 
