@@ -17,6 +17,7 @@
 import { CONFIG } from '../config.js';
 import { spawnScalper } from './scalper.js';
 import { addShake, spawnSplinters } from '../juice.js';
+import { damageBarricade } from './barricade.js';
 
 export const BOSS_STATE = {
   ARRIVING: 'arriving',       // walking in from off-screen
@@ -244,7 +245,7 @@ function charge(boss, world, deltaSeconds) {
   moveToward(boss, stopLine, CONFIG.boss.chargeSpeed, deltaSeconds);
 
   if (boss.x <= stopLine + 0.5) {
-    world.barricade.health -= CONFIG.boss.slamDamage;
+    damageBarricade(world, CONFIG.boss.slamDamage);
 
     // The whole room jumps. A charge that connects should be the loudest
     // thing that happens all night.
@@ -253,10 +254,6 @@ function charge(boss, world, deltaSeconds) {
       spawnSplinters(world, CONFIG.barricade.x + CONFIG.barricade.width, boss.y - 20 - i * 6);
     }
 
-    if (world.barricade.health <= 0) {
-      world.barricade.health = 0;
-      world.barricade.isBroken = true;
-    }
     setState(boss, BOSS_STATE.SLAMMING);
   }
 }
@@ -281,11 +278,7 @@ function attackBarricade(boss, world, deltaSeconds) {
     return;
   }
 
-  world.barricade.health -= CONFIG.boss.attackDamagePerSecond * deltaSeconds;
-  if (world.barricade.health <= 0) {
-    world.barricade.health = 0;
-    world.barricade.isBroken = true;
-  }
+  damageBarricade(world, CONFIG.boss.attackDamagePerSecond * deltaSeconds);
 
   // He still winds up while chewing, so the fight never becomes a stalemate.
   boss.windupCountdown -= deltaSeconds;

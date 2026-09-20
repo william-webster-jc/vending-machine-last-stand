@@ -24,6 +24,7 @@ import {
 } from './weapons.js';
 import { drawWeaponIcon, getIconSize } from './weapon-icons.js';
 import { getShakeOffset, drawParticles } from './juice.js';
+import { getDevRows } from './dev.js';
 import { getMousePosition } from './input.js';
 import { GAME_STATE } from './world.js';
 import { getShopRows } from './shop.js';
@@ -43,6 +44,20 @@ import {
 export const TITLE_MENU = ['START SHIFT', 'INSTRUCTIONS', 'OPTIONS'];
 export const PAUSE_MENU = ['RESUME SHIFT', 'OPTIONS', 'ABANDON SHIFT'];
 export const PAUSE_MENU_TOP_Y = 104;
+
+// The developer panel packs a lot of rows in, so it uses its own tight layout
+// rather than the shared menu spacing.
+export const DEV_ROW_TOP = 28;
+export const DEV_ROW_SPACING = 13;
+
+export function getDevRowBox(index) {
+  return {
+    x: 34,
+    y: DEV_ROW_TOP + index * DEV_ROW_SPACING,
+    width: CONFIG.screen.width - 68,
+    height: 11,
+  };
+}
 export const OPTIONS_MENU_TOP_Y = 96;
 export const TITLE_MENU_TOP_Y = 128;
 
@@ -78,7 +93,10 @@ export function drawScene(ctx, world, fps) {
     drawNightBanner(ctx, world);
   }
 
-  if (world.state === GAME_STATE.PAUSED) {
+  if (world.state === GAME_STATE.DEV_PANEL) {
+    drawDevPanel(ctx, world);
+    drawCrosshair(ctx);
+  } else if (world.state === GAME_STATE.PAUSED) {
     drawPauseScreen(ctx, world);
     drawCrosshair(ctx);
   } else if (world.state === GAME_STATE.TITLE) {
@@ -605,6 +623,56 @@ function drawMenuBackdrop(ctx) {
   }
 }
 
+// The developer panel. Deliberately plain and unlovely — it's a workbench,
+// not part of the game, and it should never be mistaken for one.
+function drawDevPanel(ctx, world) {
+  const { width, height } = CONFIG.screen;
+  const c = CONFIG.colors;
+
+  ctx.fillStyle = 'rgba(6, 10, 18, 0.94)';
+  ctx.fillRect(0, 0, width, height);
+
+  drawText(ctx, 'DEVELOPER PANEL', width / 2, 8, {
+    color: c.debugText,
+    outlineColor: c.inkOutline,
+    bold: true,
+    align: 'center',
+  });
+
+  drawText(ctx, 'NOTHING HERE IS EARNED', width / 2, 18, {
+    color: c.gameOverDim,
+    align: 'center',
+  });
+
+  const rows = getDevRows(world, world.profile);
+
+  rows.forEach((row, index) => {
+    const box = getDevRowBox(index);
+    const selected = index === world.menuIndex;
+
+    if (selected) {
+      ctx.fillStyle = c.debugText;
+      ctx.fillRect(box.x - 2, box.y - 1, box.width + 4, box.height);
+    }
+
+    drawText(ctx, row.label, box.x, box.y + 1, {
+      color: selected ? '#0a1208' : c.menuItem,
+    });
+
+    if (row.value) {
+      drawText(ctx, row.value, box.x + box.width, box.y + 1, {
+        color: selected ? '#0a1208' : c.cash,
+        align: 'right',
+      });
+    }
+  });
+
+  drawText(ctx, 'LEFT/RIGHT CHANGE   ENTER APPLY   F1 CLOSE', width / 2, height - 12, {
+    color: c.gameOverHint,
+    align: 'center',
+  });
+}
+
 // Paused mid-shift. Drawn over the frozen scene rather than replacing it, so
 // you can still see exactly what you're going back to.
 function drawPauseScreen(ctx, world) {
@@ -749,6 +817,7 @@ export function getOptionsMenuItems() {
   return [
     { label: 'DIFFICULTY', value: difficulty.name },
     { label: 'SCALPER HEALTH BARS', value: settings.showScalperHealth ? 'ON' : 'OFF' },
+    { label: 'DEVELOPER MODE', value: settings.devMode ? 'ON' : 'OFF' },
     { label: 'BACK', value: '' },
   ];
 }
@@ -771,11 +840,13 @@ function drawOptionsScreen(ctx, world) {
 
   // The blurb under the list explains whichever row you're sitting on.
   const difficulty = getDifficulty();
-  const blurb = world.menuIndex === 0
-    ? difficulty.blurb
-    : world.menuIndex === 1
-      ? 'LITTLE BARS OVER SCALPERS. HANDY WHEN TUNING.'
-      : 'RETURN TO THE TITLE SCREEN.';
+  const blurbs = [
+    difficulty.blurb,
+    'LITTLE BARS OVER SCALPERS. HANDY WHEN TUNING.',
+    'CHEAT PANEL - PRESS F1 DURING A SHIFT.',
+    'RETURN TO THE TITLE SCREEN.',
+  ];
+  const blurb = blurbs[world.menuIndex] || '';
 
   drawText(ctx, blurb, width / 2, 158, { color: c.gameOverDim, align: 'center' });
 

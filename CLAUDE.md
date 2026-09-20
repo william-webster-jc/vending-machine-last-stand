@@ -157,6 +157,21 @@ with macOS.)
 
 ---
 
+## Developer mode
+
+Options → **DEVELOPER MODE: ON**, then press **F1** during a shift.
+
+It opens a cheat panel: cash, unlock every weapon, set any upgrade level, set
+crew size, jump to any night, make the barricade invincible, repair and
+restock, spawn any scalper type on demand, or drop THE RESELLER in right now.
+
+It exists so tuning a number takes thirty seconds instead of twenty minutes of
+earning things first. It's off by default and unreachable unless deliberately
+switched on.
+
+Changing upgrades, crew or the night rebuilds the current night, because those
+numbers are baked in when a night is built.
+
 ## When something breaks
 
 1. I ask for the red text from the browser console (Cmd+Option+I → Console tab).

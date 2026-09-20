@@ -15,6 +15,7 @@
 
 import { CONFIG } from '../config.js';
 import { addShake, spawnDeathBurst, spawnSplinters } from '../juice.js';
+import { damageBarricade } from './barricade.js';
 
 export const SCALPER_STATE = {
   APPROACHING: 'approaching',       // walking in from the right
@@ -74,11 +75,13 @@ function pickType(day) {
   return available[available.length - 1];
 }
 
-export function spawnScalper(world, speedMultiplier = 1) {
+// forcedTypeId is only used by the developer panel, to drop one specific
+// kind of scalper on the floor on demand.
+export function spawnScalper(world, speedMultiplier = 1, forcedTypeId = null) {
   const { width, height, spawnMargin } = CONFIG.scalper;
   const { walkTopY, walkBottomY } = CONFIG.world;
 
-  const type = pickType(world.day);
+  const type = forcedTypeId ? getScalperType(forcedTypeId) : pickType(world.day);
 
   // Each one picks its own pace from its type's range, so even a group of the
   // same type arrives as a ragged line rather than a marching block.
@@ -101,6 +104,10 @@ export function spawnScalper(world, speedMultiplier = 1) {
 
     // Used only for the walk animation — counts up as they move.
     walkCycle: Math.random() * 10,
+
+    // Set once the wall falls, so only the first one to notice shakes the
+    // screen about it.
+    sawItFall: false,
 
     // Counts down after being shot, so we can flash them white.
     hitFlash: 0,
@@ -240,7 +247,7 @@ function attackBarricade(scalper, world, deltaSeconds) {
 
   // Damage is applied per SECOND, not per frame. Multiplying by deltaSeconds
   // is what stops the wall dying four times faster on a 240Hz monitor.
-  world.barricade.health -= CONFIG.scalper.attackDamagePerSecond * deltaSeconds;
+  damageBarricade(world, CONFIG.scalper.attackDamagePerSecond * deltaSeconds);
 
   // Keep the animation ticking so they visibly swing at it.
   scalper.walkCycle += deltaSeconds * 6;
@@ -250,9 +257,8 @@ function attackBarricade(scalper, world, deltaSeconds) {
     spawnSplinters(world, CONFIG.barricade.x + CONFIG.barricade.width, scalper.y - 12);
   }
 
-  if (world.barricade.health <= 0) {
-    world.barricade.health = 0;
-    world.barricade.isBroken = true;
+  if (world.barricade.isBroken && !scalper.sawItFall) {
+    scalper.sawItFall = true;
     addShake(world, CONFIG.juice.shakeOnBarricadeBreak);
   }
 }

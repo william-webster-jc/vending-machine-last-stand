@@ -21,6 +21,7 @@ export const GAME_STATE = {
   TITLE: 'title',
   INSTRUCTIONS: 'instructions',
   OPTIONS: 'options',
+  DEV_PANEL: 'dev-panel',
   PLAYING: 'playing',
   PAUSED: 'paused',
   GAME_OVER: 'game-over',
@@ -119,6 +120,9 @@ export function createWorld(profile) {
 
     // Which menu row is highlighted, on whichever menu is showing.
     menuIndex: 0,
+
+    // Which scalper type the developer panel is set to spawn.
+    devSpawnIndex: 0,
 
     // Where ESC should send you back to when you leave the options screen.
     // Options can be opened from the title OR from a paused shift, and it

@@ -15,6 +15,14 @@ export const settings = {
   // Little health bars over scalpers' heads. Handy while tuning, noisy once
   // you're just playing.
   showScalperHealth: true,
+
+  // DEVELOPER MODE. Off by default, switched on from the options screen.
+  // While it's on, F1 opens a panel that hands you cash, weapons, upgrades,
+  // crew and whatever else, so you can try things without earning them first.
+  devMode: false,
+
+  // A dev cheat: the barricade stops taking damage entirely.
+  devInvincibleWall: false,
 };
 
 export function getDifficulty() {

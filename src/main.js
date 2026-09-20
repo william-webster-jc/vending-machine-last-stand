@@ -24,6 +24,7 @@ import { updateNight } from './night.js';
 import { createProfile, getShopRows, buyUpgrade } from './shop.js';
 import {
   getShopRowBox,
+  getDevRowBox,
   TITLE_MENU,
   TITLE_MENU_TOP_Y,
   PAUSE_MENU,
@@ -33,6 +34,7 @@ import {
 } from './render.js';
 import { findMenuRowAt, moveSelection } from './menu.js';
 import { settings, cycleDifficulty } from './settings.js';
+import { getDevRows, applyDevAction, DEV_COMMAND } from './dev.js';
 import {
   attachMouseTo,
   consumeAnyPress,
@@ -43,6 +45,7 @@ import {
   consumeConfirm,
   consumeMenuActions,
   consumeReload,
+  consumeDevPanel,
 } from './input.js';
 
 const canvas = document.getElementById('game');
@@ -129,6 +132,9 @@ function update(deltaSeconds) {
       return;
     case GAME_STATE.PAUSED:
       updatePaused();
+      return;
+    case GAME_STATE.DEV_PANEL:
+      updateDevPanel();
       return;
     case GAME_STATE.INSTRUCTIONS:
       updateInstructions();
@@ -270,9 +276,87 @@ function updateInstructions() {
   }
 }
 
+// -----------------------------------------------------------------------------
+// DEVELOPER PANEL
+// -----------------------------------------------------------------------------
+
+function updateDevPanel() {
+  const rows = getDevRows(world, profile);
+
+  // ` closes it again, same key that opened it.
+  if (consumeDevPanel()) {
+    closeDevPanel();
+    return;
+  }
+
+  let command = DEV_COMMAND.NONE;
+
+  for (const action of consumeMenuActions()) {
+    if (action === 'menuUp') world.menuIndex = moveSelection(world.menuIndex, -1, rows.length);
+    if (action === 'menuDown') world.menuIndex = moveSelection(world.menuIndex, 1, rows.length);
+    if (action === 'back') { closeDevPanel(); return; }
+
+    if (action === 'menuLeft' || action === 'menuRight') {
+      const result = applyDevAction(world, profile, rows[world.menuIndex].id, action === 'menuRight' ? 1 : -1);
+      if (result) command = result;
+    }
+  }
+
+  const clicked = findDevRowAt(getMousePosition(), rows.length, consumeClick());
+  if (clicked >= 0) world.menuIndex = clicked;
+
+  // Enter, or a click, confirms the highlighted row. Direction 0 means
+  // "do the thing" rather than "nudge it up or down".
+  if (consumeConfirm() || clicked >= 0) {
+    const result = applyDevAction(world, profile, rows[world.menuIndex].id, 0);
+    if (result) command = result;
+  }
+
+  if (command === DEV_COMMAND.CLOSE) {
+    closeDevPanel();
+    return;
+  }
+
+  // Upgrades and crew are baked into the world when a night is built, so
+  // changing them has to rebuild it. The panel stays open, and the night
+  // restarts from the top.
+  if (command === DEV_COMMAND.REBUILD_NIGHT) {
+    const keepIndex = world.menuIndex;
+    const keepSpawnIndex = world.devSpawnIndex;
+    world = createWorld(profile);
+    world.state = GAME_STATE.DEV_PANEL;
+    world.menuIndex = keepIndex;
+    world.devSpawnIndex = keepSpawnIndex;
+  }
+}
+
+function closeDevPanel() {
+  world.state = GAME_STATE.PLAYING;
+  clearPendingPress();
+}
+
+function findDevRowAt(point, rowCount, click) {
+  const target = click || point;
+
+  for (let index = 0; index < rowCount; index++) {
+    const box = getDevRowBox(index);
+
+    const inside =
+      target.x >= box.x - 2 &&
+      target.x <= box.x + box.width + 2 &&
+      target.y >= box.y - 1 &&
+      target.y <= box.y + box.height;
+
+    if (inside) return click ? index : -1;
+  }
+
+  return -1;
+}
+
 const OPTION_ROW_DIFFICULTY = 0;
 const OPTION_ROW_HEALTH_BARS = 1;
-const OPTION_ROW_BACK = 2;
+const OPTION_ROW_DEV_MODE = 2;
+const OPTION_ROW_BACK = 3;
 
 function updateOptions() {
   const items = getOptionsMenuItems();
@@ -317,10 +401,20 @@ function changeOption(rowIndex, direction) {
     cycleDifficulty(direction);
   } else if (rowIndex === OPTION_ROW_HEALTH_BARS) {
     settings.showScalperHealth = !settings.showScalperHealth;
+  } else if (rowIndex === OPTION_ROW_DEV_MODE) {
+    settings.devMode = !settings.devMode;
   }
 }
 
 function updatePlaying(deltaSeconds) {
+  // ` opens the developer panel, but only if you turned it on yourself.
+  if (consumeDevPanel() && settings.devMode) {
+    world.state = GAME_STATE.DEV_PANEL;
+    world.menuIndex = 0;
+    clearPendingPress();
+    return;
+  }
+
   // ESC pauses. Checked before anything else moves, so the frame you pause on
   // is the frame you come back to.
   if (consumeMenuActions().includes('back')) {

@@ -11,6 +11,7 @@
 
 import { CONFIG } from '../config.js';
 import { drawHealthBar } from '../pixel.js';
+import { settings } from '../settings.js';
 
 // How far each plank juts out past the edge of the wall. Cycling through a
 // fixed list (rather than using random numbers) means the barricade looks the
@@ -29,6 +30,22 @@ export function createBarricade(maxHealth, carriedHealth = null) {
     health,
     isBroken: health <= 0,
   };
+}
+
+// The ONE way the barricade takes damage.
+//
+// Everything that hurts it — scalpers chewing, a boss slam — comes through
+// here. That's what lets the developer invincibility cheat work by changing a
+// single line, instead of hunting down every place health gets subtracted.
+export function damageBarricade(world, amount) {
+  if (settings.devInvincibleWall) return;
+
+  world.barricade.health -= amount;
+
+  if (world.barricade.health <= 0) {
+    world.barricade.health = 0;
+    world.barricade.isBroken = true;
+  }
 }
 
 // Where the guard is stopped. Normally the wall itself; once it's smashed

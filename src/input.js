@@ -33,6 +33,10 @@ const KEY_BINDINGS = {
   // Manual reload. You rarely need it, because running dry reloads for you,
   // but topping up during a lull is the mark of someone who's paying attention.
   reload: ['KeyR'],
+
+  // Opens the developer panel, when developer mode is switched on. F1 is what
+  // the game tells you to press; backtick also works for anyone used to it.
+  devPanel: ['Backquote', 'F1'],
 };
 
 // Every key currently being held down, by its physical position on the keyboard.
@@ -55,6 +59,9 @@ const pendingMenuActions = [];
 
 // Reload presses since the last check.
 let reloadPresses = 0;
+
+// Developer panel key presses since the last check.
+let devPanelPresses = 0;
 
 // Confirm presses since the last check.
 //
@@ -88,6 +95,11 @@ window.addEventListener('keydown', (event) => {
 
   if (KEY_BINDINGS.reload.includes(event.code)) {
     reloadPresses += 1;
+  }
+
+  if (KEY_BINDINGS.devPanel.includes(event.code)) {
+    devPanelPresses += 1;
+    event.preventDefault();
   }
 
   // Menus need the MOMENT a key goes down, so they're queued up here rather
@@ -222,6 +234,14 @@ export function clearPendingPress() {
   pendingMenuActions.length = 0;
   confirmPresses = 0;
   reloadPresses = 0;
+  devPanelPresses = 0;
+}
+
+// True if the developer panel key was pressed. Reading it takes it.
+export function consumeDevPanel() {
+  const pressed = devPanelPresses > 0;
+  devPanelPresses = 0;
+  return pressed;
 }
 
 // Menu keypresses since last asked, oldest first. Reading them takes them.
