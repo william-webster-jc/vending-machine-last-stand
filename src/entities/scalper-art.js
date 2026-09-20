@@ -146,37 +146,45 @@ function drawShopper(put, paint, palette, scalper, stepping) {
 function drawBulkBuyer(put, paint, palette, scalper, stepping) {
   const c = CONFIG.colors;
 
-  legs(put, paint, stepping, 24, 6, 1);
+  // Short, thick legs set wide — he's braced, not walking.
+  const shift = stepping ? 0 : 1;
+  put(3 - shift, 26, 6, 7, paint(c.scalperDenim));
+  put(10 + shift, 26, 6, 7, paint(c.scalperDenimDark));
+  put(2 - shift, 32, 8, 3, paint(c.scalperShoe));
+  put(10 + shift, 32, 8, 3, paint(c.scalperShoe));
 
-  // Huge torso, filling nearly the whole sprite. This is the read: BULK.
-  put(1, 11, 16, 14, paint(palette.top));
-  put(1, 11, 16, 3, paint(palette.topDark));
-  put(2, 20, 9, 4, paint(palette.topDark));
+  // Torso wider than the sprite box and HUNCHED — it overhangs the legs,
+  // which is what makes him read as heavy rather than merely tall.
+  put(-1, 10, 20, 17, paint(palette.top));
+  put(-1, 10, 20, 3, paint(palette.topDark));
+  put(0, 22, 11, 5, paint(palette.topDark));
 
   // High-vis stripe across the belly. A big bright band on a big body.
-  put(1, 17, 16, 2, paint(palette.trim));
+  put(-1, 17, 20, 3, paint(palette.trim));
 
-  // Small head on big shoulders, which exaggerates the bulk.
-  put(6, 4, 7, 8, paint(c.scalperSkin));
-  put(5, 2, 9, 3, paint(palette.topDark));
-  put(4, 4, 2, 2, paint(palette.topDark));
+  // Tiny head sunk between the shoulders. The size difference between head
+  // and body is doing most of the work here.
+  put(7, 5, 6, 6, paint(c.scalperSkin));
+  put(6, 3, 8, 3, paint(palette.topDark));
+  put(5, 5, 2, 2, paint(palette.topDark));
 
   // Shopping trolley shoved out in front, piled high.
   const attacking = isAttacking(scalper);
   const shove = attacking && stepping ? 2 : 0;
 
-  put(-7 - shove, 18, 8, 8, paint(c.trolleyMetal));
-  put(-7 - shove, 20, 8, 1, paint(c.scalperDenimDark));
-  put(-7 - shove, 23, 8, 1, paint(c.scalperDenimDark));
-  put(-6 - shove, 26, 2, 2, paint(c.scalperDenimDark));
-  put(-2 - shove, 26, 2, 2, paint(c.scalperDenimDark));
+  put(-11 - shove, 17, 11, 11, paint(c.trolleyMetal));
+  put(-11 - shove, 20, 11, 1, paint(c.scalperDenimDark));
+  put(-11 - shove, 24, 11, 1, paint(c.scalperDenimDark));
+  put(-10 - shove, 28, 2, 3, paint(c.scalperDenimDark));
+  put(-3 - shove, 28, 2, 3, paint(c.scalperDenimDark));
 
-  // The haul stacked above the basket.
-  put(-6 - shove, 14, 3, 4, paint(c.packColors[0]));
-  put(-3 - shove, 13, 3, 5, paint(c.packColors[4]));
+  // The haul, stacked well above the basket and piled higher than his head.
+  put(-10 - shove, 11, 4, 6, paint(c.packColors[0]));
+  put(-6 - shove, 8, 4, 9, paint(c.packColors[4]));
+  put(-2 - shove, 12, 3, 5, paint(c.packColors[2]));
 
   // Arm gripping the handle.
-  put(-1 - shove, 16, 3, 3, paint(palette.top));
+  put(-2 - shove, 15, 4, 4, paint(palette.top));
 
 }
 
@@ -188,32 +196,35 @@ function drawBulkBuyer(put, paint, palette, scalper, stepping) {
 function drawLineRunner(put, paint, palette, scalper, stepping) {
   const c = CONFIG.colors;
 
-  // Sprinting legs: one thrown forward, one trailing far back.
-  put(stepping ? 2 : 6, 24, 4, 8, paint(c.scalperDenim));
-  put(stepping ? 10 : 7, 26, 4, 6, paint(c.scalperDenimDark));
-  put(stepping ? 1 : 5, 31, 5, 3, paint(c.scalperShoe));
-  put(stepping ? 10 : 7, 31, 5, 3, paint(c.scalperShoe));
+  // A full sprint stride: front leg thrown right out, back leg trailing
+  // almost off the sprite. The gap between them IS the speed.
+  put(stepping ? -1 : 4, 25, 5, 7, paint(c.scalperDenim));
+  put(stepping ? 12 : 8, 27, 5, 6, paint(c.scalperDenimDark));
+  put(stepping ? -2 : 3, 31, 6, 3, paint(c.scalperShoe));
+  put(stepping ? 13 : 9, 32, 6, 3, paint(c.scalperShoe));
 
-  // Narrow torso, LEANING FORWARD — the whole silhouette tips left.
-  put(4, 14, 9, 11, paint(palette.top));
-  put(3, 14, 10, 2, paint(palette.topDark));
+  // Torso raked hard forward — each band sits further left than the one
+  // below it, so the whole body leans into the run.
+  put(6, 20, 9, 6, paint(palette.top));
+  put(4, 16, 10, 5, paint(palette.top));
+  put(3, 13, 10, 4, paint(palette.topDark));
 
-  // Runner's number bib. Small bright square, unmistakable.
-  put(5, 18, 5, 4, paint(palette.trim));
+  // Race bib.
+  put(6, 18, 5, 4, paint(palette.trim));
 
-  // Head thrust forward ahead of the body.
-  put(2, 6, 7, 8, paint(c.scalperSkin));
+  // Head thrust right out in front of the shoulders.
+  put(0, 5, 7, 8, paint(c.scalperSkin));
 
   // Backwards cap — the brim points the WRONG way, which is the tell.
-  put(2, 4, 8, 3, paint(palette.topDark));
-  put(9, 5, 3, 2, paint(palette.topDark));
+  put(0, 3, 8, 3, paint(palette.topDark));
+  put(7, 4, 4, 2, paint(palette.topDark));
 
-  // Both arms pumping.
+  // Both arms pumping, one forward and one flung back.
   const attacking = isAttacking(scalper);
-  const swing = attacking && stepping ? 2 : 0;
-  put(-2 - swing, 15, 5, 3, paint(palette.top));
-  put(-4 - swing, 15, 2, 3, paint(c.scalperSkin));
-  put(12, 17, 4, 3, paint(palette.top));
+  const swing = attacking && stepping ? 3 : 0;
+  put(-4 - swing, 13, 6, 3, paint(palette.top));
+  put(-6 - swing, 13, 2, 3, paint(c.scalperSkin));
+  put(13, 18, 6, 3, paint(palette.top));
 
 }
 
@@ -244,10 +255,11 @@ function drawRiotBuyer(put, paint, palette, scalper, stepping) {
   const attacking = isAttacking(scalper);
   const shove = attacking && stepping ? 2 : 0;
 
-  put(-5 - shove, 9, 5, 20, paint(c.armorPlate));
-  put(-5 - shove, 9, 5, 2, paint(c.armorPlateDark));
-  put(-5 - shove, 27, 5, 2, paint(c.armorPlateDark));
-  put(-3 - shove, 16, 2, 6, paint(c.armorPlateDark));
+  put(-7 - shove, 5, 7, 27, paint(c.armorPlate));
+  put(-7 - shove, 5, 7, 2, paint(c.armorPlateDark));
+  put(-7 - shove, 30, 7, 2, paint(c.armorPlateDark));
+  put(-5 - shove, 15, 3, 8, paint(c.armorPlateDark));
+  put(-7 - shove, 17, 7, 1, paint(c.armorPlateDark));
 
   // Arm behind the shield.
   put(-1 - shove, 16, 4, 4, paint(c.armorPlateDark));

@@ -119,7 +119,7 @@ export const CONFIG = {
       // Slow, huge, and takes most of a magazine. Ignore one and it will
       // still be there chewing the wall when everything else is dead.
       healthScale: 3.2,
-      sizeScale: 1.5,
+      sizeScale: 1.75,
       speedMin: 11,
       speedMax: 18,
       spawnWeight: 22,
@@ -132,7 +132,7 @@ export const CONFIG = {
       id: 'runner',
       name: 'LINE RUNNER',
       healthScale: 0.4,
-      sizeScale: 0.78,
+      sizeScale: 0.68,
       speedMin: 70,
       speedMax: 96,
       spawnWeight: 34,
@@ -145,7 +145,7 @@ export const CONFIG = {
       // Front plate soaks almost everything. The head is the only way in,
       // and you have to take it while it walks at you.
       healthScale: 1.5,
-      sizeScale: 1.12,
+      sizeScale: 1.2,
       speedMin: 17,
       speedMax: 28,
       spawnWeight: 20,
@@ -374,40 +374,53 @@ export const CONFIG = {
     star: '#f4f0d8',
     moon: '#f7f3d9',
 
-    // THE STORE. Big-box retail at 3am: bright fittings, dead air, and a
-    // polished floor that reflects the strip lights.
-    ceiling: '#2c313c',
-    ceilingRib: '#3a404d',
-    fluorescent: '#fff8d8',
-    fluorescentGlow: '#8f8d6e',
+    // THE STORE, 3am, half the lights dead.
+    //
+    // This is a dark room with POOLS of light in it, not a lit room. Most of
+    // the store sits in shadow; the working fixtures cut bright cones out of
+    // it. That contrast is what makes a big-box store at night feel like the
+    // inside of a DOOM level rather than a Tuesday afternoon.
+    ceiling: '#0e1016',
+    ceilingRib: '#171a23',
+    fluorescent: '#fff6c8',
+    fluorescentGlow: '#6a6446',
+    fluorescentDead: '#23262f',
 
-    wallBack: '#d8dce4',
-    wallTrimUpper: '#b9bfcb',
-    wallBaseboard: '#6f7684',
-    windowFrame: '#5a6170',
+    wallBack: '#333a4a',
+    wallLit: '#4a5468',
+    wallTrimUpper: '#232936',
+    wallBaseboard: '#15181f',
+    windowFrame: '#1a1d26',
 
-    // Hanging department signs
-    signBlue: '#0b6fc4',
-    signBlueDark: '#064a86',
-    signText: '#f2f6ff',
-    signPole: '#6f7684',
+    // Hanging department signs — still lit, still corporate blue, which is
+    // exactly what makes them eerie in a dark store.
+    signBlue: '#0d63b0',
+    signBlueDark: '#062f58',
+    signText: '#cfe2ff',
+    signPole: '#2a303c',
 
-    // Shelving and the product on it
-    shelfFrame: '#aab1bd',
-    shelfFrameDark: '#7c8391',
-    shelfBack: '#c3c9d3',
-    shelfShadow: '#9aa1ae',
+    // Shelving. Product keeps its colour but loses most of its brightness,
+    // so it reads as stock in shadow rather than as a rainbow.
+    shelfFrame: '#3d4454',
+    shelfFrameDark: '#232936',
+    shelfBack: '#2a303e',
+    shelfShadow: '#171b24',
     productColors: [
+      '#8c2f2c', '#94541c', '#8f7a22', '#2e6b32',
+      '#264d7d', '#573380', '#8a4266', '#276f74',
+    ],
+    productLitColors: [
       '#d8443c', '#e88a2a', '#e8c53a', '#4aa84a',
       '#3a78c4', '#8a4fc0', '#d86aa0', '#3fb0b8',
     ],
 
-    // Polished floor
-    floorLight: '#c6cad2',
-    floorDark: '#b6bbc4',
-    floorGrout: '#a2a8b3',
-    floorContactShadow: '#8b919d',
-    floorSheen: '#dde1e8',
+    // Polished floor: dark, with hard specular pools under the live fixtures.
+    floorLight: '#2b303c',
+    floorDark: '#232833',
+    floorGrout: '#1a1e27',
+    floorContactShadow: '#101319',
+    floorSheen: '#5a6478',
+    floorPool: '#454f62',
 
     // Vending machine
     machineBody: '#d6403f',
@@ -437,13 +450,20 @@ export const CONFIG = {
     barricadeWoodDark: '#5f3d21',
     barricadeNail: '#43342a',
 
-    // Security guard
-    guardUniform: '#2e4d91',
-    guardUniformDark: '#1e3365',
+    // THE GUARD. Mall security kitted out like a marine: olive-green
+    // fatigues, a dark plate carrier that gives the silhouette its weight,
+    // and a visored helmet. DOOM by way of a staff room.
+    guardUniform: '#5f9138',
+    guardUniformDark: '#3a5c1f',
+    guardVest: '#2b2f36',
+    guardVestDark: '#15181d',
+    guardVisor: '#5fe0b0',
     guardSkin: '#eab58d',
-    guardCap: '#17253f',
-    guardBoot: '#2b2b35',
-    gunMetal: '#4d4d59',
+    guardCap: '#232830',
+    guardBoot: '#14161b',
+    guardBadge: '#f0cf42',
+    gunMetal: '#6a707d',
+    gunMetalDark: '#31353d',
 
     // Juice
     sparkHot: '#fff3c4',
@@ -556,11 +576,11 @@ export const CONFIG = {
     gameOverDim: '#9a93ad',
     gameOverHint: '#7ae0b0',
 
-    // Hired guards — same uniform, different colours, so they read as
+    // Hired crew wear the same kit in a colder colour, so they read as
     // colleagues rather than as a different species.
-    hireUniform: '#2f7a5c',
-    hireUniformDark: '#1d5440',
-    hireCap: '#14382c',
+    hireUniform: '#3f7fa8',
+    hireUniformDark: '#265470',
+    hireCap: '#1b2730',
 
     // Weapon slot bar
     slotEmpty: '#14182c',

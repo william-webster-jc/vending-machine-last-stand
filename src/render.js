@@ -157,6 +157,19 @@ function drawBackWall(ctx, nightProgress) {
   ctx.fillStyle = c.wallBack;
   ctx.fillRect(-bleed, -bleed, width + bleed * 2, horizonY + bleed);
 
+  // A short wash of brighter wall directly under each working fixture. Kept
+  // shallow because the shelving covers everything below it anyway.
+  ctx.fillStyle = c.wallLit;
+  for (let i = 0; i < LIGHT_COUNT; i++) {
+    if (!isLightAlive(i)) continue;
+    const centre = getLightCentre(i);
+
+    for (let step = 0; step < 8; step++) {
+      const halfWidth = 17 + step * 2;
+      ctx.fillRect(centre - halfWidth, 15 + step * 5, halfWidth * 2, 5);
+    }
+  }
+
   drawCeiling(ctx, bleed);
   drawWindows(ctx, nightProgress);
   drawHangingSigns(ctx);
@@ -181,15 +194,43 @@ function drawCeiling(ctx, bleed) {
     ctx.fillRect(x, 0, 1, 14);
   }
 
-  // The strip lights themselves, and the wash they throw on the wall below.
-  for (let x = 8; x < width; x += 62) {
+  // The fixtures. Not all of them work — a dead tube every so often is what
+  // turns "a lit shop" into "a shop at 3am with half the lights out", and it
+  // costs one if statement.
+  for (let i = 0; i < LIGHT_COUNT; i++) {
+    const x = LIGHT_FIRST_X + i * LIGHT_SPACING;
+    const alive = isLightAlive(i);
+
+    if (!alive) {
+      ctx.fillStyle = c.fluorescentDead;
+      ctx.fillRect(x, 5, LIGHT_LENGTH, 4);
+      continue;
+    }
+
     ctx.fillStyle = c.fluorescentGlow;
-    ctx.fillRect(x - 1, 4, 34, 7);
+    ctx.fillRect(x - 1, 4, LIGHT_LENGTH + 2, 7);
     ctx.fillStyle = c.fluorescent;
-    ctx.fillRect(x, 5, 32, 4);
+    ctx.fillRect(x, 5, LIGHT_LENGTH, 4);
     ctx.fillStyle = c.fluorescentGlow;
-    ctx.fillRect(x + 2, 14, 28, 2);
+    ctx.fillRect(x + 2, 14, LIGHT_LENGTH - 4, 2);
   }
+}
+
+// Where the ceiling fixtures are. Everything that needs to know where the
+// light falls — the wall wash, the shelf highlights, the floor pools — reads
+// these, so the lighting can never disagree with itself.
+const LIGHT_FIRST_X = 8;
+const LIGHT_SPACING = 62;
+const LIGHT_LENGTH = 32;
+const LIGHT_COUNT = 7;
+
+// A fixed pattern rather than random, so the same tubes are dead every frame.
+function isLightAlive(index) {
+  return index % 3 !== 1;
+}
+
+function getLightCentre(index) {
+  return LIGHT_FIRST_X + index * LIGHT_SPACING + LIGHT_LENGTH / 2;
 }
 
 // High windows along the back. The sky in them is the night's clock.
@@ -290,6 +331,66 @@ function drawHangingSigns(ctx) {
 //
 // The product is just coloured blocks in rows, but varying their height and
 // colour per column is what stops it reading as wallpaper.
+// One pool of light on the floor.
+//
+// The edges are DITHERED — a checker of lit and unlit pixels — rather than
+// cut straight. A hard rectangle of pale grey reads as a platform you could
+// stand on; a scattered edge reads as light falling off. It's the oldest
+// trick in pixel art and it costs one modulo.
+function drawLightPool(ctx, centre, horizonY, screenHeight) {
+  const c = CONFIG.colors;
+  const rows = 22;
+
+  for (let step = 0; step < rows; step++) {
+    const y = horizonY + step * 3;
+    if (y > screenHeight) break;
+
+    // Narrow at the back, spreading as it comes forward.
+    const halfWidth = Math.round(13 + step * 2.1);
+    const fade = step / rows;
+
+    // Solid core.
+    const coreHalf = Math.round(halfWidth * (1 - fade * 0.55));
+    ctx.fillStyle = step < 6 ? c.floorPool : c.floorLight;
+    ctx.fillRect(centre - coreHalf, y, coreHalf * 2, 3);
+
+    // Dithered fringe on both sides.
+    ctx.fillStyle = c.floorLight;
+    for (let x = coreHalf; x < halfWidth; x += 2) {
+      if ((x + step) % 3 === 0) continue;
+      ctx.fillRect(centre + x, y, 1, 3);
+      ctx.fillRect(centre - x - 1, y, 1, 3);
+    }
+  }
+
+  // The specular streak: the actual reflection of the tube in the polish,
+  // narrowing and breaking up as it stretches toward you.
+  for (let step = 0; step < 9; step++) {
+    const y = horizonY + 2 + step * 5;
+    if (y > screenHeight) break;
+
+    const halfWidth = Math.max(1, 13 - step * 2);
+    ctx.fillStyle = CONFIG.colors.floorSheen;
+
+    if (step < 5) {
+      ctx.fillRect(centre - halfWidth, y, halfWidth * 2, 1);
+    } else {
+      for (let x = -halfWidth; x < halfWidth; x += 2) {
+        ctx.fillRect(centre + x, y, 1, 1);
+      }
+    }
+  }
+}
+
+// Is this column of the store under a live fixture?
+function isUnderLight(x) {
+  for (let i = 0; i < LIGHT_COUNT; i++) {
+    if (!isLightAlive(i)) continue;
+    if (Math.abs(x - getLightCentre(i)) < 26) return true;
+  }
+  return false;
+}
+
 function drawShelving(ctx) {
   const { width } = CONFIG.screen;
   const { horizonY } = CONFIG.world;
@@ -317,7 +418,10 @@ function drawShelving(ctx) {
       const pick = (x * 7 + row * 13) % c.productColors.length;
       const tall = (x + row) % 3 === 0;
 
-      ctx.fillStyle = c.productColors[pick];
+      // Stock directly under a working fixture keeps its real colour;
+      // everything else sits in its shadowed version.
+      const palette = isUnderLight(x) ? c.productLitColors : c.productColors;
+      ctx.fillStyle = palette[pick];
       ctx.fillRect(x, y + (tall ? 1 : 3), 5, rowHeight - (tall ? 5 : 7));
       ctx.fillStyle = c.shelfShadow;
       ctx.fillRect(x, y + rowHeight - 4, 5, 1);
@@ -431,14 +535,12 @@ function drawFloor(ctx) {
     }
   }
 
-  // Reflections of the strip lights, fading as they stretch toward you.
-  for (let x = 10; x < width; x += 62) {
-    for (let i = 0; i < 5; i++) {
-      const y = horizonY + 4 + i * 7;
-      if (y > height) break;
-      ctx.fillStyle = i < 2 ? c.floorSheen : c.floorLight;
-      ctx.fillRect(x + i, y, 28 - i * 4, 1);
-    }
+  // POOLS of light on the floor under the working fixtures. This is the bit
+  // that sells a dark store: the floor isn't evenly lit, it has bright
+  // islands with shadow between them, and you walk in and out of them.
+  for (let i = 0; i < LIGHT_COUNT; i++) {
+    if (!isLightAlive(i)) continue;
+    drawLightPool(ctx, getLightCentre(i), horizonY, height);
   }
 
   // Contact shadow where the shelving meets the floor.
