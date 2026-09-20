@@ -15,6 +15,7 @@ import { updateGuard } from './entities/guard.js';
 import { updateBullets } from './entities/bullet.js';
 import { updateGrenades } from './entities/grenade.js';
 import { updateHires } from './entities/hire.js';
+import { updateJuice } from './juice.js';
 import { getOwnedWeapons, beginReload, switchWeapon } from './weapons.js';
 import { updateScalpers } from './entities/scalper.js';
 import { updateMachine } from './entities/machine.js';
@@ -338,6 +339,7 @@ function updatePlaying(deltaSeconds) {
   updateBullets(world, deltaSeconds);
   updateGrenades(world, deltaSeconds);
   updateMachine(world, deltaSeconds);
+  updateJuice(world, deltaSeconds);
 
   // The night can end inside updateNight or updateMachine. If it just did,
   // swallow whatever was being pressed at that moment, so the shot that lost

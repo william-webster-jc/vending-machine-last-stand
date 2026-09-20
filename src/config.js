@@ -409,6 +409,13 @@ export const CONFIG = {
     guardBoot: '#2b2b35',
     gunMetal: '#4d4d59',
 
+    // Juice
+    sparkHot: '#fff3c4',
+    sparkCool: '#f0a03c',
+    smokePuff: '#6b6478',
+    casing: '#d8b25a',
+    splinter: '#a8703f',
+
     // The boss
     bossCoat: '#3b2a52',
     bossCoatDark: '#261a38',
@@ -818,6 +825,46 @@ export const CONFIG = {
     // A short pause before the restart works, so the click you were firing
     // with doesn't skip straight past the screen you just earned.
     restartDelaySeconds: 1.2,
+  },
+
+  // ---------------------------------------------------------------------------
+  // JUICE
+  //
+  // None of this changes what the game DOES. It changes how it feels to do it.
+  //
+  // A bullet already took health off a scalper before any of this existed.
+  // What it didn't do was tell you, in the half-second after you pulled the
+  // trigger, that something happened. Screen shake, sparks, knockback and a
+  // muzzle flash are all answers to "did that connect?" — and answering that
+  // instantly is most of what makes shooting feel good.
+  // ---------------------------------------------------------------------------
+  juice: {
+    // SCREEN SHAKE. Amounts stack up and then drain away.
+    shakeMax: 7,
+    shakeDecayPerSecond: 16,
+
+    shakeOnBulletHit: 0.35,
+    shakeOnWeakPointHit: 2.4,
+    shakeOnScalperDeath: 1.1,
+    shakeOnBossSlam: 6,
+    shakeOnExplosion: 4,
+    shakeOnBarricadeBreak: 7,
+
+    // KNOCKBACK. A shot shoves them backwards briefly, which is what makes a
+    // shotgun feel like a shotgun rather than a fast pistol.
+    knockbackPerHit: 0.9,
+    knockbackMax: 7,
+    knockbackDecayPerSecond: 26,
+
+    // MUZZLE FLASH — brief, because a long one just looks like a lamp.
+    muzzleFlashSeconds: 0.045,
+
+    // PARTICLES. Capped so a bad moment can't drag the frame rate down.
+    maxParticles: 380,
+    sparksPerHit: 4,
+    cardsPerDeath: 7,
+    splintersPerBarricadeHit: 3,
+    smokePerExplosion: 14,
   },
 
   // ---------------------------------------------------------------------------

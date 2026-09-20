@@ -15,6 +15,7 @@ import { createBarricade } from './entities/barricade.js';
 import { getStats } from './shop.js';
 import { createMagazines, getStartingWeaponId } from './weapons.js';
 import { createHires } from './entities/hire.js';
+import { createJuice } from './juice.js';
 
 export const GAME_STATE = {
   TITLE: 'title',
@@ -73,6 +74,9 @@ export function createWorld(profile) {
       weaponId: getStartingWeaponId(),
       magazines: createMagazines(),
       reloadTimer: 0,
+
+      // Counts down after a shot, so we can draw the flash at the barrel.
+      muzzleFlash: 0,
     },
 
     // Every bullet currently in the air.
@@ -84,6 +88,9 @@ export function createWorld(profile) {
 
     // The guards you've taken on, stood at their posts.
     hires: createHires(profile.hiredGuards),
+
+    // Screen shake and particles. Feel, not rules.
+    juice: createJuice(),
 
     // Grenades in the air, and the blasts they leave behind.
     grenades: [],

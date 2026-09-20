@@ -12,6 +12,7 @@
 import { CONFIG } from '../config.js';
 import { getScalperHitBox } from './scalper.js';
 import { getBossHitBox, getWeakPointBox, damageBoss } from './boss.js';
+import { addShake, spawnSmoke } from '../juice.js';
 
 const EXPLOSION_SECONDS = CONFIG.weapons.find((w) => w.id === 'grenades').explosionSeconds;
 
@@ -109,6 +110,9 @@ function explode(world, grenade) {
       scalper.health -= grenade.damage;
     }
   }
+
+  addShake(world, CONFIG.juice.shakeOnExplosion);
+  spawnSmoke(world, grenade.x, grenade.y, grenade.blastRadius);
 
   world.explosions.push({
     x: grenade.x,

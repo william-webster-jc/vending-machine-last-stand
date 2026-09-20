@@ -180,7 +180,7 @@ without you, using the exact same shooting code you do.
 # PHASE 2 — IT LOOKS AND FEELS GOOD
 *Goal: the gap between a prototype and a game.*
 
-### M10 — Juice
+### M10 — Juice  ☑
 Screen shake. Scalpers flash white and stagger backward when hit. Hit sparks, muzzle
 flash, shell casings, a satisfying death pop into scattered cards. Barricade visibly
 splinters as its health drops.
@@ -332,7 +332,9 @@ Nothing blocking. Noted here so they don't get lost:
 
 ## Status
 
-**PHASE 1 COMPLETE.** Next up: **Phase 2 — juice, real pixel art, sound, HUD polish**.
+**PHASE 1 COMPLETE**, plus M10, M14, M15 and M17 pulled forward.
+Next up: **M11 — real pixel art**, whenever Jace's sprites are ready. **M12 — sound**
+is the other big one outstanding.
 
 **M15 (Weapons) was pulled forward and is now done** — ammo, reload, and the
 pistol / shotgun / uzi / grenades roster all landed early at Jace's request.
@@ -350,4 +352,8 @@ rather than the basics.
 | M7 Paycheck and upgrades | ☑ |
 | M8 Title screen | ☑ |
 | M9 Interviews: hire help | ☑ |
-| M10–M23 | ☐ |
+| M10 Juice | ☑ |
+| M14 Scalper archetypes | ☑ |
+| M15 Weapons | ☑ |
+| M17 Bosses | ☑ |
+| M11–M13, M16, M18–M23 | ☐ |

@@ -14,6 +14,7 @@ import { getMoveDirection, getMousePosition, isFireHeld } from '../input.js';
 import { spawnBullet } from './bullet.js';
 import { throwGrenade } from './grenade.js';
 import { getBarricadeBlockLine } from './barricade.js';
+import { spawnCasing } from '../juice.js';
 import {
   getWeapon,
   getRoundsLeft,
@@ -27,6 +28,8 @@ export function updateGuard(guard, world, deltaSeconds) {
   updateMovement(guard, world, deltaSeconds);
   updateReload(guard, deltaSeconds);
   updateFiring(guard, world, deltaSeconds);
+
+  if (guard.muzzleFlash > 0) guard.muzzleFlash -= deltaSeconds;
 }
 
 // -----------------------------------------------------------------------------
@@ -124,6 +127,11 @@ function fireOnce(guard, world, weapon) {
   guard.magazines[guard.weaponId] -= 1;
   guard.fireCooldown = weapon.fireIntervalSeconds * world.stats.fireIntervalMultiplier;
   guard.hasFiredThisClick = true;
+
+  guard.muzzleFlash = CONFIG.juice.muzzleFlashSeconds;
+  if (weapon.kind !== 'grenade') {
+    spawnCasing(world, muzzle.x, muzzle.y - 2, guard.facing);
+  }
 
   // Firing the last round starts the reload straight away, so the delay
   // begins immediately rather than waiting for you to notice.

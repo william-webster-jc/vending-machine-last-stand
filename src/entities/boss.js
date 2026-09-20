@@ -16,6 +16,7 @@
 
 import { CONFIG } from '../config.js';
 import { spawnScalper } from './scalper.js';
+import { addShake, spawnSplinters } from '../juice.js';
 
 export const BOSS_STATE = {
   ARRIVING: 'arriving',       // walking in from off-screen
@@ -244,6 +245,14 @@ function charge(boss, world, deltaSeconds) {
 
   if (boss.x <= stopLine + 0.5) {
     world.barricade.health -= CONFIG.boss.slamDamage;
+
+    // The whole room jumps. A charge that connects should be the loudest
+    // thing that happens all night.
+    addShake(world, CONFIG.juice.shakeOnBossSlam);
+    for (let i = 0; i < 6; i++) {
+      spawnSplinters(world, CONFIG.barricade.x + CONFIG.barricade.width, boss.y - 20 - i * 6);
+    }
+
     if (world.barricade.health <= 0) {
       world.barricade.health = 0;
       world.barricade.isBroken = true;

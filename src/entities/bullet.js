@@ -14,6 +14,7 @@
 import { CONFIG } from '../config.js';
 import { getScalperHitBox, getScalperHeadBox } from './scalper.js';
 import { getBossHitBox, getWeakPointBox, damageBoss } from './boss.js';
+import { addShake, spawnHitSparks } from '../juice.js';
 
 // Create one bullet, travelling outward from (x, y) in the given direction.
 // The angle is in radians — 0 points right, and it goes clockwise from there.
@@ -66,7 +67,17 @@ function hitTheBoss(bullet, world) {
 
   const hitWeakPoint = isOverlapping(bullet, getWeakPointBox(boss));
   damageBoss(boss, bullet.damage, hitWeakPoint);
+
+  spawnHitSparks(world, bullet.x, bullet.y, getBulletAngle(bullet));
+  addShake(
+    world,
+    hitWeakPoint ? CONFIG.juice.shakeOnWeakPointHit : CONFIG.juice.shakeOnBulletHit,
+  );
   return true;
+}
+
+function getBulletAngle(bullet) {
+  return Math.atan2(bullet.velocityY, bullet.velocityX);
 }
 
 // Check this bullet against every scalper on the floor. Comparing everything
@@ -80,6 +91,17 @@ function hitAScalper(bullet, world) {
 
     scalper.health -= getDamageDealt(bullet, scalper);
     scalper.hitFlash = CONFIG.scalper.hitFlashSeconds;
+
+    // Shove them back along the line of the shot. Small, and it decays fast,
+    // but it's the difference between a bullet landing and a bullet hitting.
+    const angle = getBulletAngle(bullet);
+    scalper.knockback = Math.min(
+      CONFIG.juice.knockbackMax,
+      scalper.knockback + CONFIG.juice.knockbackPerHit,
+    );
+
+    spawnHitSparks(world, bullet.x, bullet.y, angle);
+    addShake(world, CONFIG.juice.shakeOnBulletHit);
     return true;
   }
 

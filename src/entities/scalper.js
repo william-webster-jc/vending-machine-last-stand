@@ -14,6 +14,7 @@
 // =============================================================================
 
 import { CONFIG } from '../config.js';
+import { addShake, spawnDeathBurst, spawnSplinters } from '../juice.js';
 
 export const SCALPER_STATE = {
   APPROACHING: 'approaching',       // walking in from the right
@@ -105,6 +106,9 @@ export function spawnScalper(world, speedMultiplier = 1) {
     hitFlash: 0,
     lastHitWasHeadshot: false,
 
+    // How hard they're currently being shoved backwards. Decays every frame.
+    knockback: 0,
+
     // The exact spot in front of the machine this one is making for. Assigned
     // the moment it starts heading there, so it doesn't wander frame to frame.
     machineTarget: null,
@@ -123,6 +127,9 @@ export function updateScalpers(world, deltaSeconds) {
     const scalper = scalpers[i];
 
     if (scalper.health <= 0) {
+      spawnDeathBurst(world, scalper.x, scalper.y);
+      addShake(world, CONFIG.juice.shakeOnScalperDeath);
+
       scalpers.splice(i, 1);
       world.scalpersStopped += 1;
       continue;
@@ -182,6 +189,7 @@ function separateScalpers(scalpers) {
 
 function updateOneScalper(scalper, world, deltaSeconds) {
   if (scalper.hitFlash > 0) scalper.hitFlash -= deltaSeconds;
+  applyKnockback(scalper, deltaSeconds);
 
   switch (scalper.state) {
     case SCALPER_STATE.APPROACHING:
@@ -237,9 +245,15 @@ function attackBarricade(scalper, world, deltaSeconds) {
   // Keep the animation ticking so they visibly swing at it.
   scalper.walkCycle += deltaSeconds * 6;
 
+  // Splinters fly on the beat of the swing, not every frame.
+  if (Math.floor(scalper.walkCycle) !== Math.floor(scalper.walkCycle - deltaSeconds * 6)) {
+    spawnSplinters(world, CONFIG.barricade.x + CONFIG.barricade.width, scalper.y - 12);
+  }
+
   if (world.barricade.health <= 0) {
     world.barricade.health = 0;
     world.barricade.isBroken = true;
+    addShake(world, CONFIG.juice.shakeOnBarricadeBreak);
   }
 }
 
@@ -312,6 +326,18 @@ function walkToward(scalper, target, deltaSeconds) {
   }
 
   scalper.walkCycle += deltaSeconds * scalper.speed * 0.25;
+}
+
+// Being shot shoves you backwards for a moment. It decays fast, so it reads
+// as a flinch rather than as being pushed around the room.
+function applyKnockback(scalper, deltaSeconds) {
+  if (scalper.knockback <= 0) return;
+
+  scalper.x += scalper.knockback * deltaSeconds * 12;
+  scalper.knockback = Math.max(
+    0,
+    scalper.knockback - CONFIG.juice.knockbackDecayPerSecond * deltaSeconds,
+  );
 }
 
 function walkLeft(scalper, deltaSeconds) {

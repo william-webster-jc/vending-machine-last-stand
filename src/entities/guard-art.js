@@ -117,4 +117,25 @@ function drawArmAndGun(ctx, guard, paint) {
 
   ctx.fillStyle = paint.skin;
   ctx.fillRect(Math.round(hand.x) - 1, Math.round(hand.y) - 1, 2, 2);
+
+  drawMuzzleFlash(ctx, guard, muzzle, aimX, aimY);
+}
+
+// A brief burst at the end of the barrel. It lasts well under a tenth of a
+// second on purpose — any longer and it stops reading as a bang and starts
+// reading as a lamp.
+function drawMuzzleFlash(ctx, guard, muzzle, aimX, aimY) {
+  if (!guard.muzzleFlash || guard.muzzleFlash <= 0) return;
+
+  const c = CONFIG.colors;
+  const x = Math.round(muzzle.x + aimX * 2);
+  const y = Math.round(muzzle.y + aimY * 2);
+
+  ctx.fillStyle = c.sparkCool;
+  ctx.fillRect(x - 2, y - 2, 5, 5);
+  ctx.fillStyle = c.sparkHot;
+  ctx.fillRect(x - 1, y - 1, 3, 3);
+
+  // A short spit of flame along the aim line.
+  ctx.fillRect(Math.round(x + aimX * 3) - 1, Math.round(y + aimY * 3) - 1, 2, 2);
 }

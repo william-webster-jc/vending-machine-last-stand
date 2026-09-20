@@ -23,6 +23,7 @@ import {
   ownsWeapon,
 } from './weapons.js';
 import { drawWeaponIcon, getIconSize } from './weapon-icons.js';
+import { getShakeOffset, drawParticles } from './juice.js';
 import { getMousePosition } from './input.js';
 import { GAME_STATE } from './world.js';
 import { getShopRows } from './shop.js';
@@ -113,18 +114,23 @@ function drawBackWall(ctx, nightProgress) {
   const { horizonY } = CONFIG.world;
   const c = CONFIG.colors;
 
+  // BLEED is how far the background is drawn past the edge of the screen.
+  // Without it, screen shake would slide the picture over and reveal bare
+  // canvas along the edges.
+  const bleed = CONFIG.juice.shakeMax + 2;
+
   ctx.fillStyle = c.wallBack;
-  ctx.fillRect(0, 0, width, horizonY);
+  ctx.fillRect(-bleed, -bleed, width + bleed * 2, horizonY + bleed);
 
   // Trim band along the top of the wall
   ctx.fillStyle = c.wallTrimUpper;
-  ctx.fillRect(0, 0, width, 8);
+  ctx.fillRect(-bleed, -bleed, width + bleed * 2, 8 + bleed);
 
   drawWindows(ctx, nightProgress);
 
   // Baseboard where the wall meets the floor
   ctx.fillStyle = c.wallBaseboard;
-  ctx.fillRect(0, horizonY - 6, width, 6);
+  ctx.fillRect(-bleed, horizonY - 6, width + bleed * 2, 6);
 }
 
 // Evenly spaced windows. Each one is a dark frame around a patch of night sky.
@@ -226,8 +232,10 @@ function drawFloor(ctx) {
   const { horizonY, tileSize } = CONFIG.world;
   const c = CONFIG.colors;
 
-  for (let y = horizonY; y < height; y += tileSize) {
-    for (let x = 0; x < width; x += tileSize) {
+  const bleed = CONFIG.juice.shakeMax + 2;
+
+  for (let y = horizonY; y < height + bleed; y += tileSize) {
+    for (let x = -tileSize; x < width + bleed; x += tileSize) {
       const tileRow = Math.floor((y - horizonY) / tileSize);
       const tileCol = Math.floor(x / tileSize);
       const isDarkTile = (tileRow + tileCol) % 2 === 0;
@@ -245,7 +253,7 @@ function drawFloor(ctx) {
   // Darker band right at the wall, so the floor looks like it recedes into
   // shadow rather than stopping dead.
   ctx.fillStyle = c.floorContactShadow;
-  ctx.fillRect(0, horizonY, width, 3);
+  ctx.fillRect(-bleed, horizonY, width + bleed * 2, 3);
 }
 
 // Everybody standing on the floor, drawn back-to-front.
