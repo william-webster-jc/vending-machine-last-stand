@@ -46,6 +46,10 @@ export function spawnScalper(world) {
 
     // Used only for the walk animation — counts up as they move.
     walkCycle: Math.random() * 10,
+
+    // How far back from the machine this one settles once the wall is down.
+    // Giving everyone their own number is what turns a queue into a mob.
+    crowdOffset: Math.random() * CONFIG.scalper.crowdSpread,
   });
 }
 
@@ -101,18 +105,30 @@ function separateScalpers(scalpers) {
       const a = scalpers[i];
       const b = scalpers[j];
 
-      if (Math.abs(a.y - b.y) > separationY) continue;
+      const gapX = b.x - a.x;
+      const gapY = b.y - a.y;
 
-      const gap = b.x - a.x;
-      const overlap = separationX - Math.abs(gap);
-      if (overlap <= 0) continue;
+      const overlapX = separationX - Math.abs(gapX);
+      const overlapY = separationY - Math.abs(gapY);
 
-      // Push each one half the overlap, in opposite directions, so neither
-      // gets bullied across the floor by the other.
-      const push = overlap / 2;
-      const direction = gap >= 0 ? 1 : -1;
-      a.x -= push * direction;
-      b.x += push * direction;
+      // Not actually sharing a spot — nothing to do.
+      if (overlapX <= 0 || overlapY <= 0) continue;
+
+      // Shove them apart along whichever axis they're LEAST wedged on, since
+      // that's the shortest way out. Always pushing sideways would flatten a
+      // crowd into a single line; this lets it bulge into a proper mob.
+      // Each one moves half the overlap, so neither bullies the other.
+      if (overlapX / separationX <= overlapY / separationY) {
+        const push = (overlapX / 2) * (gapX >= 0 ? 1 : -1);
+        a.x -= push;
+        b.x += push;
+      } else {
+        const push = (overlapY / 2) * (gapY >= 0 ? 1 : -1);
+        a.y -= push;
+        b.y += push;
+        keepOnFloor(a);
+        keepOnFloor(b);
+      }
     }
   }
 }
@@ -175,11 +191,28 @@ function attackBarricade(scalper, world, deltaSeconds) {
 function headForMachine(scalper, deltaSeconds) {
   walkLeft(scalper, deltaSeconds);
 
-  const machineEdge = CONFIG.machine.x + CONFIG.machine.width + scalper.width / 2;
-  if (scalper.x <= machineEdge) {
-    scalper.x = machineEdge;
+  const target = getMachineCrowdSpot(scalper);
+  if (scalper.x <= target) {
+    scalper.x = target;
     scalper.state = SCALPER_STATE.AT_MACHINE;
   }
+}
+
+// Where this scalper is trying to stand once it reaches the machine.
+//
+// The machine is an object on the floor, not a wall — same rule the guard
+// plays by. Anyone walking along the front of it can get right up to the
+// glass. Anyone level with it has to stop at its side. That difference is
+// what makes the crowd wrap around the front instead of forming a flat line.
+function getMachineCrowdSpot(scalper) {
+  const machineFrontY = CONFIG.machine.footY + 4;
+  const isInFrontOfMachine = scalper.y > machineFrontY;
+
+  const base = isInFrontOfMachine
+    ? CONFIG.machine.x + scalper.width / 2
+    : CONFIG.machine.x + CONFIG.machine.width + scalper.width / 2;
+
+  return base + scalper.crowdOffset;
 }
 
 function walkLeft(scalper, deltaSeconds) {
@@ -190,6 +223,13 @@ function walkLeft(scalper, deltaSeconds) {
 function getBarricadeStopLine(scalper) {
   const barricadeRightEdge = CONFIG.barricade.x + CONFIG.barricade.width;
   return barricadeRightEdge + CONFIG.scalper.attackReach + scalper.width / 2;
+}
+
+// Being shoved around by the crowd must never push anyone off the walkable
+// floor band.
+function keepOnFloor(scalper) {
+  const { walkTopY, walkBottomY } = CONFIG.world;
+  scalper.y = Math.min(Math.max(scalper.y, walkTopY), walkBottomY);
 }
 
 // The rectangle a bullet has to touch to count as a hit.

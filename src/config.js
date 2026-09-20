@@ -103,6 +103,11 @@ export const CONFIG = {
     separationX: 9,
     separationY: 7,
 
+    // Once the wall is down they mob the machine. Each one picks a spot up to
+    // this many pixels back from it, so the crowd has depth instead of being
+    // a single line of people all touching the glass.
+    crowdSpread: 26,
+
     // How close they get before they stop and start attacking.
     attackReach: 3,
 
@@ -279,5 +284,9 @@ export const CONFIG = {
 
     // Shows how many scalpers are on the floor.
     showScalperCount: true,
+
+    // A little health bar over every scalper's head, so you can watch damage
+    // land while testing. Turn off for a clean-looking game.
+    showScalperHealth: true,
   },
 };

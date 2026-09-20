@@ -10,7 +10,7 @@
 // =============================================================================
 
 import { CONFIG } from '../config.js';
-import { drawFootShadow } from '../pixel.js';
+import { drawFootShadow, drawHealthBar } from '../pixel.js';
 import { SCALPER_STATE } from './scalper.js';
 
 export function drawScalper(ctx, scalper) {
@@ -30,6 +30,24 @@ export function drawScalper(ctx, scalper) {
   drawBody(ctx, left, top);
   drawHead(ctx, left, top);
   drawArm(ctx, left, top, scalper, isStepping);
+
+  if (CONFIG.debug.showScalperHealth) {
+    drawScalperHealthBar(ctx, scalper, top);
+  }
+}
+
+// A small health bar over the head. This is a TESTING aid — it's behind
+// CONFIG.debug.showScalperHealth, so the finished game can hide it and let
+// the hit flash in M10 do the job instead.
+function drawScalperHealthBar(ctx, scalper, top) {
+  const barWidth = 14;
+  const barHeight = 2;
+
+  const x = Math.round(scalper.x - barWidth / 2);
+  const y = top - 5;
+  const fraction = scalper.health / CONFIG.scalper.maxHealth;
+
+  drawHealthBar(ctx, x, y, barWidth, barHeight, fraction);
 }
 
 function drawLegs(ctx, left, top, isStepping) {
