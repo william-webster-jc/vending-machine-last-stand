@@ -291,12 +291,12 @@ Nothing blocking. Noted here so they don't get lost:
 
 ## Status
 
-Nothing built yet. Next up: **M1 — The scene**.
+Phase 1 in progress. Next up: **M3 — Draw your weapon**.
 
 | Milestone | Status |
 |---|---|
-| M1 The scene | ☐ |
-| M2 Walk the beat | ☐ |
+| M1 The scene | ☑ |
+| M2 Walk the beat | ☑ |
 | M3 Draw your weapon | ☐ |
 | M4 Scalpers and the barricade | ☐ |
 | M5 The breach | ☐ |

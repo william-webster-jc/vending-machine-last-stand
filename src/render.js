@@ -20,7 +20,7 @@ export function drawScene(ctx, world, fps) {
   drawGuard(ctx, world.guard);
 
   if (CONFIG.debug.showDebug) {
-    drawDebugReadout(ctx, fps);
+    drawDebugReadout(ctx, world, fps);
   }
 }
 
@@ -124,7 +124,7 @@ function drawFloor(ctx) {
 
 // Small corner readouts. These are for you, not the player — they get switched
 // off with CONFIG.debug.showDebug.
-function drawDebugReadout(ctx, fps) {
+function drawDebugReadout(ctx, world, fps) {
   const { height } = CONFIG.screen;
   const c = CONFIG.colors;
 
@@ -133,6 +133,12 @@ function drawDebugReadout(ctx, fps) {
 
   ctx.fillStyle = c.debugText;
   ctx.fillText(`${fps} fps`, 4, 4);
+
+  if (CONFIG.debug.showPosition) {
+    const x = Math.round(world.guard.x);
+    const y = Math.round(world.guard.y);
+    ctx.fillText(`x ${x}  y ${y}`, 4, 14);
+  }
 
   ctx.textBaseline = 'bottom';
   ctx.fillStyle = c.debugLabel;

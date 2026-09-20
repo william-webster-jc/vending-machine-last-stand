@@ -11,6 +11,7 @@
 
 import { CONFIG } from './config.js';
 import { drawScene } from './render.js';
+import { updateGuard } from './entities/guard.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -70,10 +71,12 @@ function measureFrameRate(deltaSeconds) {
 }
 
 // -----------------------------------------------------------------------------
-// UPDATE — where everything thinks and moves.
-// Empty for M1 on purpose. The guard walks here in M2.
+// UPDATE — where everything thinks and moves, once per frame.
+// Every new thing we build gets one line here.
 // -----------------------------------------------------------------------------
 function update(deltaSeconds) {
+  updateGuard(world.guard, deltaSeconds);
+
   measureFrameRate(deltaSeconds);
 }
 

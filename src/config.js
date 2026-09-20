@@ -68,6 +68,20 @@ export const CONFIG = {
     startY: 180,
     width: 13,
     height: 26,
+
+    // How fast you walk, in pixels per second. Higher = faster.
+    // The patrol strip is roughly 110 pixels wide, so at 82 it takes you a
+    // little over a second to cross it end to end.
+    speed: 82,
+
+    // Moving up and down is slower than moving left and right, because in a
+    // side-on view "up" means walking deeper into the screen, which covers
+    // less ground than walking across it. Set this to 1 for equal speed.
+    verticalSpeedFactor: 0.7,
+
+    // How much breathing room to leave between you and the machine or the
+    // barricade, so you stop just short instead of clipping into them.
+    clearance: 5,
   },
 
   // ---------------------------------------------------------------------------
@@ -136,6 +150,9 @@ export const CONFIG = {
   debug: {
     showDebug: true,
     fpsSampleSeconds: 0.5,
-    buildLabel: 'M1 · THE SCENE',
+    buildLabel: 'M2 - WALK THE BEAT',
+
+    // Shows your exact position on screen. Handy while testing movement.
+    showPosition: true,
   },
 };
