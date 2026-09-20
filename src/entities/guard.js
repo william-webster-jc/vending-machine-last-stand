@@ -27,48 +27,83 @@ export function updateGuard(guard, deltaSeconds) {
   // 41% faster than walking straight. Dividing by the arrow's own length
   // shrinks it back to exactly 1, which is what keeps every direction equal.
   const arrowLength = Math.hypot(direction.x, direction.y);
-  const unitX = direction.x / arrowLength;
-  const unitY = direction.y / arrowLength;
 
   // Multiplying by deltaSeconds is what makes this "pixels per second" rather
   // than "pixels per frame" — so the guard walks at the same real-world pace
   // on a 60Hz screen and a 144Hz one.
-  guard.x += unitX * speed * deltaSeconds;
-  guard.y += unitY * speed * verticalSpeedFactor * deltaSeconds;
+  const stepX = (direction.x / arrowLength) * speed * deltaSeconds;
+  const stepY = (direction.y / arrowLength) * speed * verticalSpeedFactor * deltaSeconds;
 
-  keepGuardInPatrolArea(guard);
+  // Move one axis at a time, checking for obstacles after each. Handling them
+  // separately is what lets you slide along a wall: if left/right is blocked,
+  // your up/down still goes through instead of the whole step being cancelled.
+  moveHorizontally(guard, stepX);
+  moveVertically(guard, stepY);
 }
 
-// The rectangle of floor the guard is allowed to stand on: hemmed in by the
-// vending machine on the left, the barricade on the right, and the back and
-// front edges of the walkable floor band.
+// The patch of floor the vending machine physically takes up, expressed as the
+// range the guard's CENTRE is not allowed to enter.
 //
-// These are worked out from wherever the machine and barricade actually are,
-// rather than being typed in as fixed numbers. That means if you move the
-// barricade in config.js, your patrol area moves with it automatically.
-export function getPatrolArea() {
-  const { width, clearance } = CONFIG.guard;
-  const halfWidth = width / 2;
-
-  const machineRightEdge = CONFIG.machine.x + CONFIG.machine.width;
-  const barricadeLeftEdge = CONFIG.barricade.x;
+// The key thing: the machine is an object standing on the floor, not a wall.
+// Its floor space ends at its base (footY). Walk further forward than that —
+// closer to the camera — and you're in front of it, free to pass by.
+function getMachineFloorSpace() {
+  const { width: guardWidth, clearance } = CONFIG.guard;
+  const halfWidth = guardWidth / 2;
 
   return {
-    minX: machineRightEdge + clearance + halfWidth,
-    maxX: barricadeLeftEdge - clearance - halfWidth,
-    minY: CONFIG.world.walkTopY,
-    maxY: CONFIG.world.walkBottomY,
+    // Blocked all the way to the left screen edge. There's no useful floor
+    // behind the machine, and leaving a sliver there would let you tuck into
+    // a dead-end pocket beside it.
+    left: 0,
+    right: CONFIG.machine.x + CONFIG.machine.width + clearance + halfWidth,
+    front: CONFIG.machine.footY + clearance,
   };
 }
 
-// Shove the guard back inside the patrol area if he just stepped out of it.
-// Clamping after moving (rather than refusing the move) is what makes him
-// slide cleanly along a wall instead of sticking to it.
-function keepGuardInPatrolArea(guard) {
-  const area = getPatrolArea();
+// Left/right movement, then push back out of anything we walked into.
+function moveHorizontally(guard, stepX) {
+  const halfWidth = CONFIG.guard.width / 2;
+  const { clearance } = CONFIG.guard;
 
-  guard.x = Math.min(Math.max(guard.x, area.minX), area.maxX);
-  guard.y = Math.min(Math.max(guard.y, area.minY), area.maxY);
+  guard.x += stepX;
+
+  // The barricade is a real wall — it blocks you no matter how far forward you
+  // stand. That's the whole point of it.
+  const barricadeLimit = CONFIG.barricade.x - clearance - halfWidth;
+  guard.x = Math.min(guard.x, barricadeLimit);
+
+  // The screen's left edge.
+  guard.x = Math.max(guard.x, halfWidth + 2);
+
+  // The machine only stops you if you're level with it or behind it. You can
+  // only ever approach it from the right, so push back out that way.
+  //
+  // The comparison is deliberately strict: standing exactly on the machine's
+  // front line counts as being IN FRONT of it, so you're free to walk past.
+  // Using <= here would shove you sideways the instant you stepped onto that
+  // line while walking around it.
+  const machine = getMachineFloorSpace();
+  const isLevelWithMachine = guard.y < machine.front;
+  if (isLevelWithMachine && guard.x < machine.right) {
+    guard.x = machine.right;
+  }
+}
+
+// Up/down movement, then push back out of anything we walked into.
+function moveVertically(guard, stepY) {
+  guard.y += stepY;
+
+  // Front and back edges of the walkable floor band.
+  guard.y = Math.min(Math.max(guard.y, CONFIG.world.walkTopY), CONFIG.world.walkBottomY);
+
+  // If you're standing in front of the machine and try to back up into it,
+  // stop at its base. You can only reach this spot from the front, so that's
+  // the direction to push back out.
+  const machine = getMachineFloorSpace();
+  if (guard.x < machine.right && guard.y < machine.front) {
+    guard.y = machine.front;
+  }
 }
 
 // -----------------------------------------------------------------------------
