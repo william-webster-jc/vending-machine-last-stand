@@ -124,7 +124,15 @@ function fireOnce(guard, world, weapon) {
     // aim line by a random amount. That's the whole difference between it and
     // the pistol — no separate shotgun code anywhere.
     for (let i = 0; i < weapon.pelletsPerShot; i++) {
-      spawnBullet(world, muzzle.x, muzzle.y, applySpread(guard.aimAngle, weapon), damage);
+      spawnBullet(
+        world,
+        muzzle.x,
+        muzzle.y,
+        applySpread(guard.aimAngle, weapon),
+        damage,
+        weapon.bulletSpeed,
+        weapon.pierceCount || 0,
+      );
     }
   }
 

@@ -194,7 +194,7 @@ splinters as its health drops.
 **The one new idea:** *Game feel* — small visual lies that make impacts read. This is
 genuinely most of what "polish" means.
 
-### M11 — Real pixel art
+### M11 — Real pixel art  *(moved to the very end — final polish)*
 Your sprites replace every rectangle. Walk cycles, shoot poses, scalper animations,
 barricade damage states, mall background layers. Crisp nearest-neighbour scaling, no
 blur.
@@ -209,7 +209,7 @@ recording session. Volume slider in Options.
 
 **Still open:** a loopable night-shift music track.
 
-### M13 — HUD, pause, options
+### M13 — HUD, pause, options  ☑
 Clean HUD: barricade health, night progress, cash, ammo, day count. Pause that
 actually pauses. Working options menu. A game-over screen with real stats.
 **The one new idea:** *UI state* — interface that reads from the game without the
@@ -244,18 +244,27 @@ Original notes, for reference:
 - **Line Cutter** — shoves other scalpers ahead of it, disrupting your aim priority
 **Done when:** A night's *composition* changes how you play it, not just its size.
 
-### M15 — More weapons  ☑ *(core done early)*
+### M15 — Weapons  ☑
 **Done:** ammo and reload, plus pistol / shotgun / uzi / grenades, bought from the
 shop and swapped with the number keys. Every weapon is an entry in a list, so the
 rest of this milestone is just adding entries.
 
-**Still open:** a railgun that pierces a whole line, an ammo economy (buying reserve
-rounds rather than infinite magazines), and weapon-specific upgrades.
+**Also done:** the RAILGUN, which punches through up to six bodies in a line, and a
+real ammo economy — every weapon except the pistol has a finite reserve for the
+night, refilled each morning and extended by the AMMO BELT upgrade. The pistol stays
+infinite so running dry is never a death sentence.
 
-### M16 — Barricade tech and traps
-Spend on the barricade itself: reinforced plating, auto-turrets mounted on top, trip
-mines in the breach zone, a repair drone that patches it mid-night.
-**Done when:** Your setup is a strategy, and you have a favourite one.
+### M16 — Barricade tech and traps  ☑
+**Built:** WALL TURRETS that fire on their own, TRIP MINES laid across the approach,
+and a REPAIR DRONE that patches the wall as you fight. Three levels each.
+
+What they share, and why they cost what they do: they all work *while you are looking
+somewhere else*. Your attention is the scarcest thing you have in a bad night. Unlike
+a hire, none of them draw wages — you pay once, so they're the long-term investment
+the crew isn't.
+
+The drone deliberately will NOT rebuild a wall that has already fallen. A breach that
+quietly healed itself would evaporate the whole tension of a breach.
 
 ### M17 — Bosses  ☑ *(THE RESELLER done early)*
 **Built: THE RESELLER.** Arrives a fifth of the way into every 5th night, while the
@@ -341,8 +350,11 @@ Nothing blocking. Noted here so they don't get lost:
 ## Status
 
 **PHASE 1 COMPLETE**, plus M10, M14, M15 and M17 pulled forward.
-Next up: **M11 — real pixel art**, whenever Jace's sprites are ready. **M12 — sound**
-is the other big one outstanding.
+M11 (real pixel art) is deliberately LAST — it's final polish, and everything is
+structured so only the `-art.js` files change when it happens.
+
+Next up: **M18-M23** — meta-progression and saving, difficulty/endless scaling,
+accessibility and controls, and shipping.
 
 **M15 (Weapons) was pulled forward and is now done** — ammo, reload, and the
 pistol / shotgun / uzi / grenades roster all landed early at Jace's request.
@@ -365,4 +377,7 @@ rather than the basics.
 | M15 Weapons | ☑ |
 | M17 Bosses | ☑ |
 | M12 Sound | ☑ |
-| M11, M13, M16, M18–M23 | ☐ |
+| M13 HUD, pause, options | ☑ |
+| M16 Barricade tech | ☑ |
+| M18–M23 | ☐ |
+| M11 Real pixel art | ☐ *last* |

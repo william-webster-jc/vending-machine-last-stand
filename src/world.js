@@ -13,8 +13,9 @@
 import { CONFIG } from './config.js';
 import { createBarricade } from './entities/barricade.js';
 import { getStats } from './shop.js';
-import { createMagazines, getStartingWeaponId } from './weapons.js';
+import { createMagazines, createReserves, getStartingWeaponId } from './weapons.js';
 import { createHires } from './entities/hire.js';
+import { createTech } from './entities/tech.js';
 import { createJuice } from './juice.js';
 
 export const GAME_STATE = {
@@ -74,6 +75,10 @@ export function createWorld(profile) {
       // night loaded.
       weaponId: getStartingWeaponId(),
       magazines: createMagazines(),
+
+      // Spare rounds for tonight, behind the magazine. Refilled every night.
+      reserves: createReserves(profile.upgradeLevels.ammobelt || 0),
+
       reloadTimer: 0,
 
       // Counts down after a shot, so we can draw the flash at the barrel.
@@ -86,6 +91,9 @@ export function createWorld(profile) {
     // THE RESELLER, once he's turned up. null on ordinary nights.
     boss: null,
     bossDefeated: false,
+
+    // Turrets on the wall, mines in the approach, and the repair drone.
+    tech: createTech(profile),
 
     // The guards you've taken on, stood at their posts.
     hires: createHires(profile.hiredGuards),

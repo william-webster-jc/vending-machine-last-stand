@@ -53,6 +53,34 @@ export function createMagazines() {
   return magazines;
 }
 
+// And a night's worth of spare rounds behind it, scaled by your ammo belt.
+//
+// Reserves refill every night — they're a budget for tonight, not a resource
+// to hoard across a career. That keeps a bad night from crippling the next
+// one, while still making you think about whether this crowd is worth the
+// railgun.
+export function createReserves(ammoBeltLevel = 0) {
+  const reserves = {};
+  const item = CONFIG.economy.items.find((entry) => entry.id === 'ammobelt');
+  const bonus = 1 + ammoBeltLevel * (item ? item.effectPerLevel : 0);
+
+  for (const weapon of CONFIG.weapons) {
+    reserves[weapon.id] = weapon.reserveAmmo === Infinity
+      ? Infinity
+      : Math.round(weapon.reserveAmmo * bonus);
+  }
+
+  return reserves;
+}
+
+export function getReserveLeft(guard) {
+  return guard.reserves[guard.weaponId];
+}
+
+export function hasAnyAmmo(guard) {
+  return getRoundsLeft(guard) > 0 || getReserveLeft(guard) > 0;
+}
+
 export function getRoundsLeft(guard) {
   return guard.magazines[guard.weaponId];
 }
@@ -61,13 +89,14 @@ export function isReloading(guard) {
   return guard.reloadTimer > 0;
 }
 
-// Start a reload, unless one is already running or the magazine is already
-// full. Returns true if a reload actually began.
+// Start a reload, unless one is already running, the magazine is already
+// full, or there's nothing left to load. Returns true if one actually began.
 export function beginReload(guard) {
   const weapon = getWeapon(guard.weaponId);
 
   if (isReloading(guard)) return false;
   if (getRoundsLeft(guard) >= weapon.magazineSize) return false;
+  if (getReserveLeft(guard) <= 0) return false;
 
   guard.reloadTimer = weapon.reloadSeconds;
   return true;
@@ -80,7 +109,21 @@ export function updateReload(guard, deltaSeconds) {
   if (guard.reloadTimer > 0) return;
 
   guard.reloadTimer = 0;
-  guard.magazines[guard.weaponId] = getWeapon(guard.weaponId).magazineSize;
+
+  // Take from the reserve to top up the magazine — and only as much as is
+  // actually there, so the last reload of the night can be a partial one.
+  const weapon = getWeapon(guard.weaponId);
+  const room = weapon.magazineSize - guard.magazines[weapon.id];
+  const reserve = guard.reserves[weapon.id];
+
+  if (reserve === Infinity) {
+    guard.magazines[weapon.id] = weapon.magazineSize;
+    return;
+  }
+
+  const taken = Math.min(room, reserve);
+  guard.magazines[weapon.id] += taken;
+  guard.reserves[weapon.id] -= taken;
 }
 
 // How far through a reload we are, 0 to 1. Used to draw the progress bar.

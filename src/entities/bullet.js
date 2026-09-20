@@ -19,10 +19,15 @@ import { playHit, playHeadshot } from '../audio.js';
 
 // Create one bullet, travelling outward from (x, y) in the given direction.
 // The angle is in radians — 0 points right, and it goes clockwise from there.
-export function spawnBullet(world, x, y, angle, damage, speed = CONFIG.bullet.speed) {
+export function spawnBullet(world, x, y, angle, damage, speed = CONFIG.bullet.speed, pierce = 0) {
   world.bullets.push({
     x,
     y,
+
+    // How many more scalpers this round can pass through. The railgun is the
+    // only thing that ships with any; everything else stops at the first hit.
+    pierce,
+    alreadyHit: pierce > 0 ? [] : null,
     // We work out the horizontal and vertical speed ONCE, here at birth,
     // instead of recalculating the angle every frame for every bullet.
     velocityX: Math.cos(angle) * speed,
@@ -52,12 +57,23 @@ export function updateBullets(world, deltaSeconds) {
       continue;
     }
 
-    // A bullet that connects is used up, whether or not the hit was fatal.
     // The boss is checked first: he's the biggest thing on the floor and
     // standing in front of his own crowd, so shots should land on him.
-    if (hitTheBoss(bullet, world) || hitAScalper(bullet, world)) {
+    if (hitTheBoss(bullet, world)) {
       bullets.splice(i, 1);
+      continue;
     }
+
+    if (!hitAScalper(bullet, world)) continue;
+
+    // A piercing round keeps going, having spent one of its passes. Anything
+    // else is used up, whether or not the hit was fatal.
+    if (bullet.pierce > 0) {
+      bullet.pierce -= 1;
+      continue;
+    }
+
+    bullets.splice(i, 1);
   }
 }
 
@@ -91,7 +107,12 @@ function getBulletAngle(bullet) {
 function hitAScalper(bullet, world) {
   for (const scalper of world.scalpers) {
     if (scalper.health <= 0) continue;
+
+    // A piercing round must not hit the same body twice on its way through.
+    if (bullet.alreadyHit && bullet.alreadyHit.includes(scalper)) continue;
+
     if (!isOverlapping(bullet, getScalperHitBox(scalper))) continue;
+    if (bullet.alreadyHit) bullet.alreadyHit.push(scalper);
 
     scalper.health -= getDamageDealt(bullet, scalper);
     scalper.hitFlash = CONFIG.scalper.hitFlashSeconds;
@@ -107,9 +128,9 @@ function hitAScalper(bullet, world) {
     spawnHitSparks(world, bullet.x, bullet.y, angle);
     addShake(world, CONFIG.juice.shakeOnBulletHit);
 
-    // A distinct ping for a headshot, so you learn the armour rule by ear as
-    // well as by watching the health bar.
-    if (scalper.armored && scalper.lastHitWasHeadshot) playHeadshot();
+    // A distinct ping for any headshot, so you can hear that you aimed well
+    // without watching the health bar.
+    if (scalper.lastHitWasHeadshot) playHeadshot();
     else playHit();
     return true;
   }
@@ -119,20 +140,26 @@ function hitAScalper(bullet, world) {
 
 // How much of a shot actually lands.
 //
-// A riot plate covers the body, so body shots barely scratch one — the head
-// is the way in. Everyone else takes the full hit wherever you connect, so
-// you're not asked to aim precisely at things that don't require it.
+// Two rules stacked:
+//   HEADSHOTS pay a small bonus on anyone, so taking the moment to aim is
+//   worth something even against an ordinary scalper.
+//   RIOT PLATES stop almost everything, so against those the head isn't a
+//   bonus, it's the only way in.
 function getDamageDealt(bullet, scalper) {
-  if (!scalper.armored) return bullet.damage;
-
   const head = getScalperHeadBox(scalper);
-  if (isOverlapping(bullet, head)) {
-    scalper.lastHitWasHeadshot = true;
-    return bullet.damage;
+  const hitHead = isOverlapping(bullet, head);
+
+  scalper.lastHitWasHeadshot = hitHead;
+
+  if (hitHead) {
+    return Math.max(1, Math.round(bullet.damage * CONFIG.headshotMultiplier));
   }
 
-  scalper.lastHitWasHeadshot = false;
-  return Math.max(1, Math.round(bullet.damage * CONFIG.armorDamageFactor));
+  if (scalper.armored) {
+    return Math.max(1, Math.round(bullet.damage * CONFIG.armorDamageFactor));
+  }
+
+  return bullet.damage;
 }
 
 // Two rectangles overlap unless one is entirely past the other on some side.

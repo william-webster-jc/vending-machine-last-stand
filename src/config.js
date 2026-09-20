@@ -158,6 +158,11 @@ export const CONFIG = {
   // seven body shots to do the damage of one to the head.
   armorDamageFactor: 0.15,
 
+  // A bonus for hitting ANY scalper in the head, armoured or not. Deliberately
+  // small: it should reward taking the moment to aim, not punish you for
+  // spraying at a crowd that's already through the wall.
+  headshotMultiplier: 1.1,
+
   // ---------------------------------------------------------------------------
   // SCALPERS — they walk in from the right and tear at the barricade.
   // Different scalper types arrive in M14; for now they're all the same.
@@ -288,6 +293,10 @@ export const CONFIG = {
       autoFire: true,
       cost: 0,
       kind: 'gun',
+
+      // The sidearm never runs dry. Everything else is finite, and this is
+      // what stops that being a death sentence — you always have SOMETHING.
+      reserveAmmo: Infinity,
     },
     {
       id: 'shotgun',
@@ -303,6 +312,7 @@ export const CONFIG = {
       autoFire: false,
       cost: 220,
       kind: 'gun',
+      reserveAmmo: 30,
     },
     {
       id: 'uzi',
@@ -318,6 +328,7 @@ export const CONFIG = {
       autoFire: true,
       cost: 260,
       kind: 'gun',
+      reserveAmmo: 160,
     },
     {
       id: 'grenades',
@@ -332,6 +343,7 @@ export const CONFIG = {
       autoFire: false,
       cost: 300,
       kind: 'grenade',
+      reserveAmmo: 6,
 
       // Grenade-only. It's lobbed rather than fired, so it travels at a
       // throwable pace, arcs through the air, and goes off on a fuse.
@@ -340,6 +352,27 @@ export const CONFIG = {
       blastRadius: 34,
       arcHeight: 22,
       explosionSeconds: 0.28,
+    },
+    {
+      id: 'railgun',
+      name: 'RAILGUN',
+      blurb: 'PUNCHES THROUGH A WHOLE QUEUE',
+      // Slow, precious, and it does not stop at the first thing it hits.
+      // Lined up on a queue at the barricade it clears the lot.
+      magazineSize: 2,
+      reloadSeconds: 2.6,
+      fireIntervalSeconds: 1.1,
+      damage: 34,
+      pelletsPerShot: 1,
+      spreadDegrees: 0,
+      bulletSpeed: 780,
+      autoFire: false,
+      cost: 420,
+      kind: 'gun',
+      reserveAmmo: 12,
+
+      // How many scalpers one shot can pass through before it stops.
+      pierceCount: 6,
     },
   ],
 
@@ -582,6 +615,30 @@ export const CONFIG = {
     hireUniformDark: '#265470',
     hireCap: '#1b2730',
 
+    // Barricade tech
+    turretBody: '#4a5262',
+    turretBodyDark: '#2a303c',
+    turretBarrel: '#7d8699',
+    mineBody: '#7a3030',
+    mineLight: '#ff5a4a',
+    mineLightDim: '#4a1e1e',
+    droneBody: '#3f7fa8',
+    droneBodyDark: '#255170',
+    droneRotor: '#9ec8e0',
+    droneBeam: '#5fe0b0',
+
+    // HUD
+    hudPanel: 'rgba(8, 10, 16, 0.72)',
+    hudEdge: '#39405266',
+    hudLabel: '#7d879e',
+    hudValue: '#e8ecf5',
+    hudNightBarTrack: '#1b2130',
+    hudNightBarFill: '#3fb4f0',
+    hudNightBarDawn: '#ffb45e',
+    hudWallGood: '#5fd65f',
+    hudWallWarn: '#e8c34a',
+    hudWallCritical: '#e05454',
+
     // Weapon slot bar
     slotEmpty: '#14182c',
     slotFilled: '#232a4a',
@@ -594,6 +651,11 @@ export const CONFIG = {
     iconMetalDark: '#525a78',
     iconGrip: '#8a5a32',
     iconBrass: '#e0b040',
+
+    // Reserve ammo readout
+    reserveAmmo: '#9aa4bd',
+    reserveAmmoLow: '#f0a03c',
+    reserveAmmoOut: '#e05454',
 
     // Ammo readout and grenades
     ammoFull: '#e8ecf5',
@@ -627,7 +689,7 @@ export const CONFIG = {
     // How long one night lasts, in seconds. This is the single biggest dial
     // on the whole game — it sets how long a run takes and how much
     // punishment a night adds up to.
-    durationSeconds: 120,
+    durationSeconds: 75,
 
     // How many scalpers turn up over the whole of night one.
     //
@@ -776,6 +838,17 @@ export const CONFIG = {
         costGrowth: 45,
       },
       {
+        id: 'ammobelt',
+        name: 'AMMO BELT',
+        blurb: 'SPARE ROUNDS',
+        // A multiplier on every weapon's reserve except the pistol, which is
+        // already infinite. Each level is another 40% of a full load.
+        effectPerLevel: 0.4,
+        maxLevel: 4,
+        baseCost: 75,
+        costGrowth: 55,
+      },
+      {
         id: 'boots',
         name: 'BETTER BOOTS',
         blurb: 'MOVE SPEED',
@@ -805,7 +878,7 @@ export const CONFIG = {
     name: 'THE RESELLER',
 
     // He shows up on every Nth night, part way through.
-    everyNights: 5,
+    everyNights: 3,
     arrivesAtProgress: 0.22,
 
     // Health grows with the night he appears on.
@@ -849,6 +922,72 @@ export const CONFIG = {
 
     // Paid on top of the night's wages for putting him down.
     bounty: 260,
+  },
+
+  // ---------------------------------------------------------------------------
+  // BARRICADE TECH
+  //
+  // Things you bolt to the wall instead of to yourself. Every one of them
+  // works while you're looking somewhere else, which is the point: your
+  // attention is the scarcest thing you have, and this is how you buy some.
+  //
+  // Unlike hires, none of these draw wages — you pay once. They're the
+  // long-term investment the crew isn't.
+  // ---------------------------------------------------------------------------
+  tech: {
+    // A gun mounted on top of the wall. Fires on its own, slowly, forever.
+    turret: {
+      name: 'WALL TURRET',
+      blurb: 'AUTO-FIRES OVER THE WALL',
+      maxLevel: 3,
+      baseCost: 240,
+      costGrowth: 180,
+
+      damage: 9,
+      fireIntervalSeconds: 0.85,
+      range: 210,
+      spreadDegrees: 5,
+      bulletSpeed: 430,
+
+      // Each level adds another gun along the top of the barricade.
+      // They're spaced down its height so they cover different depths.
+    },
+
+    // Charges laid in the approach, on the far side of the wall.
+    mines: {
+      name: 'TRIP MINES',
+      blurb: 'LAID IN THE APPROACH',
+      maxLevel: 4,
+      baseCost: 160,
+      costGrowth: 110,
+
+      // How many are laid at the start of each night, per level.
+      perLevel: 2,
+
+      damage: 42,
+      blastRadius: 30,
+      triggerRadius: 9,
+
+      // A beat between being stepped on and going off, so you see it happen.
+      fuseSeconds: 0.22,
+    },
+
+    // A drone that patches the wall while you fight.
+    drone: {
+      name: 'REPAIR DRONE',
+      blurb: 'PATCHES THE WALL AS YOU FIGHT',
+      maxLevel: 3,
+      baseCost: 220,
+      costGrowth: 160,
+
+      // Barricade health restored per second, per level. Deliberately slow:
+      // it should outlast a trickle, not a crowd.
+      repairPerSecond: 2.2,
+
+      // It will not rebuild a wall that has already fallen. Once it's down,
+      // it's down until morning.
+      hoverSpeed: 26,
+    },
   },
 
   // ---------------------------------------------------------------------------

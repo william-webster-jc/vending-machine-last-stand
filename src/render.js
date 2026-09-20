@@ -12,12 +12,14 @@ import { drawBarricade } from './entities/barricade.js';
 import { drawGuard, getHirePalette } from './entities/guard-art.js';
 import { drawScalper } from './entities/scalper-art.js';
 import { drawBoss } from './entities/boss-art.js';
+import { drawTech } from './entities/tech-art.js';
 import { BOSS_STATE, isWeakPointOpen } from './entities/boss.js';
 import { drawBullets } from './entities/bullet.js';
 import { drawGrenades, drawExplosions } from './entities/grenade.js';
 import {
   getWeapon,
   getRoundsLeft,
+  getReserveLeft,
   isReloading,
   getReloadProgress,
   ownsWeapon,
@@ -76,6 +78,7 @@ export function drawScene(ctx, world, fps) {
 
   drawMachine(ctx, world.machine);
   drawBarricade(ctx, world.barricade);
+  drawTech(ctx, world);
   drawCharacters(ctx, world);
 
   // Bullets go on top of the barricade, because you're shooting OVER your own
@@ -92,6 +95,7 @@ export function drawScene(ctx, world, fps) {
   drawDawnWash(ctx, nightProgress);
 
   if (world.state === GAME_STATE.PLAYING || world.state === GAME_STATE.PAUSED) {
+    drawHud(ctx, world, nightProgress);
     drawWeaponBar(ctx, world);
 
     if (world.boss && world.boss.health > 0) {
@@ -724,6 +728,133 @@ function getBossCaption(boss) {
   }
 }
 
+// =============================================================================
+// THE HUD
+//
+// Four things, and no more: how long until sunrise, how the wall is holding,
+// what you've earned, and what's in your gun.
+//
+// Everything else the game knows is either already visible in the world — the
+// wall splinters, the machine empties, the sky lightens — or isn't worth
+// taking your eyes off the floor for. A HUD competes with the game for your
+// attention, so it has to earn every pixel.
+// =============================================================================
+
+function drawHud(ctx, world, nightProgress) {
+  drawNightPanel(ctx, world, nightProgress);
+  drawWallPanel(ctx, world);
+  drawPursePanel(ctx, world);
+}
+
+// Top left: which night, and how much of it is left.
+//
+// The sky is still the real clock — this is the precise version for when you
+// need to know whether to spend your last grenade or save it.
+function drawNightPanel(ctx, world, nightProgress) {
+  const c = CONFIG.colors;
+
+  const x = 4;
+  const y = 4;
+  const width = 78;
+
+  panel(ctx, x, y, width, 21);
+
+  drawText(ctx, `NIGHT ${world.day}`, x + 4, y + 3, {
+    color: c.hudValue,
+    bold: true,
+  });
+
+  // Sunrise meter. It turns dawn-orange as it fills, so the colour tells you
+  // the same story as the length.
+  const barX = x + 4;
+  const barY = y + 13;
+  const barWidth = width - 8;
+
+  ctx.fillStyle = c.hudNightBarTrack;
+  ctx.fillRect(barX, barY, barWidth, 4);
+
+  const filled = Math.round(barWidth * nightProgress);
+  ctx.fillStyle = nightProgress > 0.75 ? c.hudNightBarDawn : c.hudNightBarFill;
+  ctx.fillRect(barX, barY, filled, 4);
+
+  // A tick where the sun starts coming up, so 'nearly there' is a place on
+  // the bar rather than a feeling.
+  ctx.fillStyle = c.hudNightBarDawn;
+  ctx.fillRect(barX + Math.round(barWidth * CONFIG.sky.sunRisesAt), barY - 1, 1, 6);
+}
+
+// Under it: the barricade, because it is your health bar and it is the thing
+// you most need to know about without looking away from the crowd.
+function drawWallPanel(ctx, world) {
+  const c = CONFIG.colors;
+  const barricade = world.barricade;
+
+  const x = 4;
+  const y = 27;
+  const width = 78;
+
+  panel(ctx, x, y, width, 17);
+
+  const fraction = Math.max(0, barricade.health / barricade.maxHealth);
+  const broken = barricade.isBroken;
+
+  const color = broken || fraction < 0.3
+    ? c.hudWallCritical
+    : fraction < 0.6
+      ? c.hudWallWarn
+      : c.hudWallGood;
+
+  drawText(ctx, broken ? 'WALL DOWN' : 'BARRICADE', x + 4, y + 3, {
+    color: broken ? c.hudWallCritical : c.hudLabel,
+    bold: broken,
+  });
+
+  const barX = x + 4;
+  const barY = y + 11;
+  const barWidth = width - 8;
+
+  ctx.fillStyle = c.hudNightBarTrack;
+  ctx.fillRect(barX, barY, barWidth, 3);
+  ctx.fillStyle = color;
+  ctx.fillRect(barX, barY, Math.round(barWidth * fraction), 3);
+}
+
+// Top right: what tonight has been worth so far.
+function drawPursePanel(ctx, world) {
+  const c = CONFIG.colors;
+  const { width: screenWidth } = CONFIG.screen;
+
+  const width = 66;
+  const x = screenWidth - width - 4;
+  const y = 4;
+
+  panel(ctx, x, y, width, 21);
+
+  drawText(ctx, 'CASH', x + 4, y + 3, { color: c.hudLabel });
+  drawText(ctx, `${world.profile.cash}`, x + width - 4, y + 3, {
+    color: c.cash,
+    bold: true,
+    align: 'right',
+  });
+
+  drawText(ctx, 'STOPPED', x + 4, y + 12, { color: c.hudLabel });
+  drawText(ctx, `${world.scalpersStopped}`, x + width - 4, y + 12, {
+    color: c.hudValue,
+    align: 'right',
+  });
+}
+
+// A dim plate with a lighter top edge, so panels sit ON the scene rather than
+// floating over it as raw text.
+function panel(ctx, x, y, width, height) {
+  const c = CONFIG.colors;
+
+  ctx.fillStyle = c.hudPanel;
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = c.hudEdge;
+  ctx.fillRect(x, y, width, 1);
+}
+
 // The weapon bar, bottom right: one slot per weapon in the game, always all
 // of them. Locked slots stay visible and empty so you can see what there is
 // to buy and which number it'll be — the numbers never shuffle around as you
@@ -807,6 +938,8 @@ function drawAmmoReadout(ctx, world, right, baseY) {
     return;
   }
 
+  drawReserveCount(ctx, guard, weapon, right, baseY - 10);
+
   const lowThreshold = Math.max(1, Math.ceil(weapon.magazineSize * 0.25));
   const color = rounds === 0 ? c.ammoEmpty : rounds <= lowThreshold ? c.ammoLow : c.ammoFull;
 
@@ -825,6 +958,29 @@ function drawAmmoReadout(ctx, world, right, baseY) {
     color,
     outlineColor: c.inkOutline,
     bold: true,
+    align: 'right',
+  });
+}
+
+// Spare rounds behind the magazine, above the ammo ticks.
+//
+// The pistol says nothing at all, because it never runs out and a permanent
+// infinity symbol is just noise.
+function drawReserveCount(ctx, guard, weapon, right, y) {
+  const c = CONFIG.colors;
+  const reserve = getReserveLeft(guard);
+
+  if (reserve === Infinity) return;
+
+  const color = reserve === 0
+    ? c.reserveAmmoOut
+    : reserve <= weapon.magazineSize
+      ? c.reserveAmmoLow
+      : c.reserveAmmo;
+
+  drawText(ctx, reserve === 0 ? 'NO SPARE' : `+${reserve}`, right, y, {
+    color,
+    outlineColor: c.inkOutline,
     align: 'right',
   });
 }
@@ -1127,7 +1283,7 @@ function drawShopScreen(ctx, world) {
   ctx.fillStyle = c.shopVeil;
   ctx.fillRect(0, 0, width, CONFIG.screen.height);
 
-  drawText(ctx, 'SUPPLY RUN', width / 2, 6, {
+  drawText(ctx, 'SUPPLY RUN', width / 2, 2, {
     color: c.titleMain,
     outlineColor: c.inkOutline,
     bold: true,
@@ -1135,7 +1291,7 @@ function drawShopScreen(ctx, world) {
     align: 'center',
   });
 
-  drawText(ctx, `DAY ${profile.day}`, 30, 24, {
+  drawText(ctx, `DAY ${profile.day}`, 30, 18, {
     color: c.gameOverDim,
     outlineColor: c.inkOutline,
   });
@@ -1143,12 +1299,12 @@ function drawShopScreen(ctx, world) {
   // You only find out someone walked when you get here, because that's when
   // payroll actually ran.
   if (world.someoneQuit) {
-    drawText(ctx, 'COULDNT MAKE PAYROLL - A GUARD QUIT', width / 2, 24, {
+    drawText(ctx, 'COULDNT MAKE PAYROLL - A GUARD QUIT', width / 2, 18, {
       color: c.cashShort,
       align: 'center',
     });
   }
-  drawText(ctx, `CASH ${profile.cash}`, width - 30, 24, {
+  drawText(ctx, `CASH ${profile.cash}`, width - 30, 18, {
     color: c.cash,
     outlineColor: c.inkOutline,
     bold: true,
@@ -1159,13 +1315,21 @@ function drawShopScreen(ctx, world) {
   rows.forEach((row, index) => drawShopRow(ctx, row, index, world));
 
   const lastRow = getShopRowBox(rows.length - 1);
-  drawText(ctx, `CLICK OR PRESS 1-${rows.length} TO BUY`, width / 2, lastRow.y + 22, {
+
+  // The selected row's description gets its own line under the list. With
+  // fourteen rows there is no space to put it beside a name — it collided
+  // with the longer ones — and one line that changes as you move is easier
+  // to read than fourteen crammed ones anyway.
+  const selected = rows[world.hoveredShopRow];
+  if (selected) {
+    drawText(ctx, selected.detail, width / 2, lastRow.y + 13, {
+      color: c.shopBlurb,
+      align: 'center',
+    });
+  }
+
+  drawText(ctx, `CLICK TO BUY    ENTER - START NIGHT ${profile.day}`, width / 2, lastRow.y + 23, {
     color: c.gameOverHint,
-    outlineColor: c.inkOutline,
-    align: 'center',
-  });
-  drawText(ctx, `ENTER - START NIGHT ${profile.day}`, width / 2, lastRow.y + 32, {
-    color: c.gameOverText,
     outlineColor: c.inkOutline,
     align: 'center',
   });
@@ -1175,15 +1339,15 @@ function drawShopScreen(ctx, world) {
 // this, so a row can never be drawn somewhere you can't click it.
 // The shop now lists repair, three weapons and four upgrades, so rows are
 // tight. Both the drawing and the clicking read these same numbers.
-const SHOP_ROW_TOP = 34;
-const SHOP_ROW_SPACING = 18;
+const SHOP_ROW_TOP = 28;
+const SHOP_ROW_SPACING = 12;
 
 export function getShopRowBox(index) {
   return {
     x: 30,
     y: SHOP_ROW_TOP + index * SHOP_ROW_SPACING,
     width: CONFIG.screen.width - 60,
-    height: 16,
+    height: 10,
   };
 }
 
@@ -1208,13 +1372,16 @@ function drawShopRow(ctx, row, index, world) {
     outlineColor: c.inkOutline,
   });
 
-  drawText(ctx, row.name, box.x + 12, box.y + 1, {
+  // With thirteen rows there's no room for a second line on every one, so
+  // the detail moves inline beside the name and only the SELECTED row shows
+  // it in full underneath.
+  drawText(ctx, row.name, box.x + 17, box.y + 2, {
     color: nameColor,
     outlineColor: c.inkOutline,
     bold: true,
   });
 
-  drawText(ctx, row.detail, box.x + 12, box.y + 9, { color: detailColor });
+
 
   // Price on the right, red when you can't afford it.
   const priceX = box.x + box.width - 4;
@@ -1225,7 +1392,7 @@ function drawShopRow(ctx, row, index, world) {
       ? c.cash
       : c.cashShort;
 
-  drawText(ctx, priceText, priceX, box.y + 5, {
+  drawText(ctx, priceText, priceX, box.y + 2, {
     color: isSelected && !row.maxed ? '#ffffff' : priceColor,
     outlineColor: c.inkOutline,
     bold: true,
@@ -1327,8 +1494,9 @@ function drawDebugReadout(ctx, world, fps) {
     );
   }
 
+  // Tucked under the HUD panels so the two don't fight for the same corner.
   lines.forEach((line, index) => {
-    drawText(ctx, line, 4, 4 + index * 9, { color: c.debugText });
+    drawText(ctx, line, 4, 48 + index * 9, { color: c.debugText });
   });
 
   drawText(ctx, CONFIG.debug.buildLabel, 4, height - 11, { color: c.debugLabel });

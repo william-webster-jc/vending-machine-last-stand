@@ -28,6 +28,9 @@ export function createProfile() {
     // How many guards are on the payroll.
     hiredGuards: 0,
 
+    // Barricade tech: turret / mines / drone, each with a level.
+    techLevels: {},
+
     // How much barricade health you carry INTO tonight. null means "full",
     // which is how a brand new career starts.
     //
@@ -53,6 +56,15 @@ export function getNightlyWages(profile) {
 
 export function getUpgradeLevel(profile, id) {
   return profile.upgradeLevels[id] || 0;
+}
+
+export function getTechLevel(profile, id) {
+  return profile.techLevels[id] || 0;
+}
+
+export function getTechCost(profile, id) {
+  const tech = CONFIG.tech[id];
+  return tech.baseCost + getTechLevel(profile, id) * tech.costGrowth;
 }
 
 // -----------------------------------------------------------------------------
@@ -168,6 +180,25 @@ export function getShopRows(profile) {
     affordable: repairCost > 0 && profile.cash >= repairCost,
   });
 
+  // Barricade tech. Listed before the interviews because it's the thing that
+  // keeps paying without wages.
+  for (const id of ['turret', 'mines', 'drone']) {
+    const tech = CONFIG.tech[id];
+    const level = getTechLevel(profile, id);
+    const cost = getTechCost(profile, id);
+    const maxed = level >= tech.maxLevel;
+
+    rows.push({
+      id: `tech:${id}`,
+      name: tech.name,
+      detail: `${tech.blurb}  ${'|'.repeat(level)}${'.'.repeat(tech.maxLevel - level)}`,
+      cost,
+      maxed,
+      maxedLabel: 'MAXED',
+      affordable: !maxed && profile.cash >= cost,
+    });
+  }
+
   // Interviews.
   const hireCost = getHireCost(profile);
   const atMaxCrew = profile.hiredGuards >= CONFIG.help.maxHires;
@@ -224,6 +255,7 @@ export function getShopRows(profile) {
 export function buyUpgrade(profile, id) {
   if (id === 'repair') return buyRepair(profile);
   if (id === 'hire') return hireGuard(profile);
+  if (id.startsWith('tech:')) return buyTech(profile, id.slice(5));
   if (id.startsWith('weapon:')) return buyWeapon(profile, id.slice(7));
 
   const item = findItem(id);
@@ -241,6 +273,21 @@ export function buyUpgrade(profile, id) {
   // Reinforcing raises the ceiling but doesn't patch the holes — the new
   // health has to be repaired like any other missing health. Otherwise
   // reinforcing would quietly be a free repair too.
+  return true;
+}
+
+function buyTech(profile, id) {
+  const tech = CONFIG.tech[id];
+  if (!tech) return false;
+
+  const level = getTechLevel(profile, id);
+  if (level >= tech.maxLevel) return false;
+
+  const cost = getTechCost(profile, id);
+  if (profile.cash < cost) return false;
+
+  profile.cash -= cost;
+  profile.techLevels[id] = level + 1;
   return true;
 }
 

@@ -15,6 +15,7 @@ import { updateGuard } from './entities/guard.js';
 import { updateBullets } from './entities/bullet.js';
 import { updateGrenades } from './entities/grenade.js';
 import { updateHires } from './entities/hire.js';
+import { updateTech } from './entities/tech.js';
 import { updateJuice } from './juice.js';
 import { getOwnedWeapons, beginReload, switchWeapon } from './weapons.js';
 import { updateScalpers } from './entities/scalper.js';
@@ -448,6 +449,7 @@ function updatePlaying(deltaSeconds) {
 
   updateGuard(world.guard, world, deltaSeconds);
   updateHires(world, deltaSeconds);
+  updateTech(world, deltaSeconds);
   retireBossIfDown(world);
   updateScalpers(world, deltaSeconds);
   updateBullets(world, deltaSeconds);
