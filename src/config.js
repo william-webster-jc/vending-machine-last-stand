@@ -31,8 +31,8 @@ export const CONFIG = {
   // ---------------------------------------------------------------------------
   world: {
     horizonY: 118,
-    walkTopY: 134,
-    walkBottomY: 202,
+    walkTopY: 142,
+    walkBottomY: 206,
     tileSize: 16,
   },
 
@@ -163,8 +163,8 @@ export const CONFIG = {
   // Different scalper types arrive in M14; for now they're all the same.
   // ---------------------------------------------------------------------------
   scalper: {
-    width: 13,
-    height: 26,
+    width: 18,
+    height: 36,
 
     // How many bullets it takes to drop one, on night one, with the pistol
     // you start with. Their actual health is worked out from this and the
@@ -193,8 +193,8 @@ export const CONFIG = {
     // separationY is how close in DEPTH two of them have to be before they
     // count as sharing a spot at all — stand far enough apart front-to-back
     // and you can overlap on screen quite happily.
-    separationX: 9,
-    separationY: 7,
+    separationX: 12,
+    separationY: 8,
 
     // Once the wall is down they mob the FRONT of the machine — that's where
     // the glass and the dispenser are, so it's the only place you can
@@ -222,9 +222,9 @@ export const CONFIG = {
   // ---------------------------------------------------------------------------
   guard: {
     startX: 110,
-    startY: 180,
-    width: 13,
-    height: 26,
+    startY: 188,
+    width: 18,
+    height: 36,
 
     // How fast you walk, in pixels per second. Higher = faster.
     // The patrol strip is roughly 110 pixels wide, so at 82 it takes you a
@@ -242,14 +242,14 @@ export const CONFIG = {
 
     // How high up the body the shooting arm comes out of, measured up from
     // the feet. Bigger = the gun sits higher on his chest.
-    shoulderHeight: 15,
+    shoulderHeight: 21,
 
     // How far the arm reaches out from the shoulder, in pixels.
-    armLength: 6,
+    armLength: 8,
 
     // How far past the hand the barrel sticks out. Shots are born here, so
     // they appear to leave the gun rather than the guard's chest.
-    barrelLength: 5,
+    barrelLength: 7,
   },
 
   // ---------------------------------------------------------------------------
@@ -467,16 +467,28 @@ export const CONFIG = {
     bossBarTrack: '#2a1226',
     bossBarEdge: '#12080f',
 
-    // Scalper variants
-    bruteHoodie: '#a34fd6',
-    bruteHoodieDark: '#6f2fa0',
-    bruteBackpack: '#e07a54',
-    runnerHoodie: '#54c8e0',
-    runnerHoodieDark: '#2f8aa8',
-    runnerBackpack: '#e0d054',
-    armorPlate: '#9aa4bd',
-    armorPlateDark: '#5f6885',
-    armorVisor: '#ff6a6a',
+    // SCALPER TYPES. Each one gets its own palette AND its own prop, because
+    // at this size a silhouette reads across the room long before a colour
+    // does — which is exactly how Plants vs Zombies tells its zombies apart.
+    bruteHoodie: '#8f3f2a',
+    bruteHoodieDark: '#5e2718',
+    bruteTrim: '#e0a03c',
+
+    runnerHoodie: '#2f9fb8',
+    runnerHoodieDark: '#1c6a7c',
+    runnerTrim: '#f0e04a',
+
+    armorPlate: '#98a2b8',
+    armorPlateDark: '#5a6274',
+    armorVisor: '#ff5a4a',
+
+    // Shared scalper bits
+    scalperDenim: '#3a4460',
+    scalperDenimDark: '#262e44',
+    cardboardSign: '#c99a5a',
+    cardboardSignDark: '#8f6a38',
+    phoneGlow: '#7ce0ff',
+    trolleyMetal: '#aab2c0',
 
     // Scalpers — bright and cartoonish, never menacing
     scalperHoodie: '#8a54e0',

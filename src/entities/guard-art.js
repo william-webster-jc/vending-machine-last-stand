@@ -1,103 +1,131 @@
 // =============================================================================
 // guard-art.js — what the security guard looks like.
 //
-// Kept separate from guard.js so "how he behaves" and "how he looks" don't
-// tangle together. When your real pixel art arrives, this is the only file
-// that has to change.
+// Mall security kitted out like a marine: olive fatigues, a plate carrier, and
+// a visored helmet with a green glow behind it. DOOM by way of a staff room.
+//
+// Drawn in an 18x36 sprite space. Hired crew run through the exact same code
+// with a different palette, so they read as colleagues rather than as a
+// different species.
 // =============================================================================
 
 import { CONFIG } from '../config.js';
 import { drawPixelLine, drawFootShadow } from '../pixel.js';
 import { getShoulderPosition } from './guard.js';
 
-// The colours a guard is painted in. Hired help uses exactly the same
-// drawing with a different set, so they read as colleagues in a different
-// uniform rather than as a different kind of thing entirely.
+const SPRITE_WIDTH = 18;
+const SPRITE_HEIGHT = 36;
+
 export function getGuardPalette() {
   const c = CONFIG.colors;
   return {
     uniform: c.guardUniform,
     uniformDark: c.guardUniformDark,
-    cap: c.guardCap,
+    vest: c.guardVest,
+    vestDark: c.guardVestDark,
+    visor: c.guardVisor,
+    helmet: c.guardCap,
     skin: c.guardSkin,
     boot: c.guardBoot,
-    badge: c.machineTrim,
+    badge: c.guardBadge,
     gun: c.gunMetal,
+    gunDark: c.gunMetalDark,
   };
 }
 
 export function getHirePalette() {
   const c = CONFIG.colors;
   return {
+    ...getGuardPalette(),
     uniform: c.hireUniform,
     uniformDark: c.hireUniformDark,
-    cap: c.hireCap,
-    skin: c.guardSkin,
-    boot: c.guardBoot,
-    badge: c.machineTrim,
-    gun: c.gunMetal,
+    helmet: c.hireCap,
+    visor: '#6fb8e0',
   };
 }
 
 export function drawGuard(ctx, guard, palette = null) {
-  const { width, height } = CONFIG.guard;
-  const c = CONFIG.colors;
   const paint = palette || getGuardPalette();
+  const scale = (CONFIG.guard.width || SPRITE_WIDTH) / SPRITE_WIDTH;
 
-  const left = Math.round(guard.x - width / 2);
-  const top = Math.round(guard.y - height);
+  const left = Math.round(guard.x - CONFIG.guard.width / 2);
+  const top = Math.round(guard.y - CONFIG.guard.height);
+
+  const put = (x, y, w, h, color) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(
+      left + Math.round(x * scale),
+      top + Math.round(y * scale),
+      Math.max(1, Math.round(w * scale)),
+      Math.max(1, Math.round(h * scale)),
+    );
+  };
+
   const facingRight = guard.facing >= 0;
 
-  drawFootShadow(ctx, guard.x, guard.y, 12);
+  drawFootShadow(ctx, guard.x, guard.y, Math.round(14 * scale));
 
-  // Boots
-  ctx.fillStyle = paint.boot;
-  if (facingRight) {
-    ctx.fillRect(left + 2, top + 23, 4, 3);
-    ctx.fillRect(left + 7, top + 23, 5, 3);
-  } else {
-    ctx.fillRect(left + 1, top + 23, 5, 3);
-    ctx.fillRect(left + 7, top + 23, 4, 3);
-  }
-
-  // Legs
-  ctx.fillStyle = paint.uniformDark;
-  ctx.fillRect(left + 3, top + 18, 3, 5);
-  ctx.fillRect(left + 7, top + 18, 3, 5);
-
-  // Torso
-  ctx.fillStyle = paint.uniform;
-  ctx.fillRect(left + 2, top + 9, 9, 9);
-
-  // Belt
-  ctx.fillStyle = paint.cap;
-  ctx.fillRect(left + 2, top + 17, 9, 2);
-
-  // Badge on the chest, on whichever side he's turned toward
-  ctx.fillStyle = paint.badge;
-  ctx.fillRect(facingRight ? left + 4 : left + 7, top + 11, 2, 2);
-
-  // Head
-  ctx.fillStyle = paint.skin;
-  ctx.fillRect(left + 4, top + 3, 6, 6);
-
-  // Cap. The brim points the way he's facing — at this size it's the clearest
-  // signal of which direction he's turned.
-  ctx.fillStyle = paint.cap;
-  ctx.fillRect(left + 3, top, 7, 3);
-  ctx.fillRect(facingRight ? left + 10 : left, top + 2, 3, 1);
-
+  drawLegs(put, paint, facingRight);
+  drawTorso(put, paint, facingRight);
+  drawHelmet(put, paint, facingRight);
   drawArmAndGun(ctx, guard, paint);
+}
+
+// Combat trousers bloused into boots.
+function drawLegs(put, paint, facingRight) {
+  put(4, 23, 5, 9, paint.uniform);
+  put(9, 23, 5, 9, paint.uniformDark);
+
+  put(3, 30, 6, 4, paint.boot);
+  put(9, 30, 6, 4, paint.boot);
+
+  // Toe cap points the way he's facing.
+  put(facingRight ? 14 : 2, 32, 2, 2, paint.boot);
+}
+
+// Fatigues under a plate carrier. The vest is the darkest block on him, which
+// is what gives the silhouette its weight.
+function drawTorso(put, paint, facingRight) {
+  put(3, 12, 12, 12, paint.uniform);
+  put(3, 12, 12, 2, paint.uniformDark);
+
+  // Plate carrier.
+  put(4, 14, 10, 8, paint.vest);
+  put(4, 14, 10, 1, paint.vestDark);
+  put(4, 18, 10, 1, paint.vestDark);
+
+  // Shoulder plates.
+  put(2, 13, 3, 4, paint.vestDark);
+  put(13, 13, 3, 4, paint.vestDark);
+
+  // Badge on the chest, on whichever side he's turned toward.
+  put(facingRight ? 5 : 11, 15, 2, 2, paint.badge);
+}
+
+// Helmet with a visor slot. The glow is the only bright thing on his head,
+// so it's what your eye tracks when he's in a crowd.
+function drawHelmet(put, paint, facingRight) {
+  put(5, 3, 9, 9, paint.skin);
+
+  put(4, 1, 11, 5, paint.helmet);
+  put(4, 6, 2, 4, paint.helmet);
+  put(13, 6, 2, 4, paint.helmet);
+
+  // Visor slot.
+  const visorX = facingRight ? 6 : 5;
+  put(visorX, 6, 7, 2, paint.visor);
+
+  // Brim juts the way he's facing.
+  put(facingRight ? 14 : 2, 4, 3, 2, paint.helmet);
 }
 
 // The shooting arm, drawn fresh every frame pointing at your mouse.
 //
 // Rather than rotating a picture of an arm — fiddly and blurry at this size —
-// we just work out where the hand ends up and draw a short line of chunky
-// pixels out to it. At 13 pixels tall that reads perfectly.
+// we work out where the hand ends up and draw a short line of chunky pixels
+// out to it. It reads perfectly and stays crisp at every angle.
 function drawArmAndGun(ctx, guard, paint) {
-  const { armLength } = CONFIG.guard;
-  const { barrelLength } = CONFIG.guard;
+  const { armLength, barrelLength } = CONFIG.guard;
 
   const shoulder = getShoulderPosition(guard);
   const aimX = Math.cos(guard.aimAngle);
@@ -115,8 +143,16 @@ function drawArmAndGun(ctx, guard, paint) {
   drawPixelLine(ctx, shoulder, hand, paint.uniform);
   drawPixelLine(ctx, hand, muzzle, paint.gun);
 
+  // A darker underline along the barrel gives it thickness.
+  drawPixelLine(
+    ctx,
+    { x: hand.x, y: hand.y + 1 },
+    { x: muzzle.x, y: muzzle.y + 1 },
+    paint.gunDark,
+  );
+
   ctx.fillStyle = paint.skin;
-  ctx.fillRect(Math.round(hand.x) - 1, Math.round(hand.y) - 1, 2, 2);
+  ctx.fillRect(Math.round(hand.x) - 1, Math.round(hand.y) - 1, 3, 3);
 
   drawMuzzleFlash(ctx, guard, muzzle, aimX, aimY);
 }
@@ -132,10 +168,8 @@ function drawMuzzleFlash(ctx, guard, muzzle, aimX, aimY) {
   const y = Math.round(muzzle.y + aimY * 2);
 
   ctx.fillStyle = c.sparkCool;
-  ctx.fillRect(x - 2, y - 2, 5, 5);
+  ctx.fillRect(x - 3, y - 3, 7, 7);
   ctx.fillStyle = c.sparkHot;
-  ctx.fillRect(x - 1, y - 1, 3, 3);
-
-  // A short spit of flame along the aim line.
-  ctx.fillRect(Math.round(x + aimX * 3) - 1, Math.round(y + aimY * 3) - 1, 2, 2);
+  ctx.fillRect(x - 2, y - 2, 5, 5);
+  ctx.fillRect(Math.round(x + aimX * 4) - 1, Math.round(y + aimY * 4) - 1, 3, 3);
 }
