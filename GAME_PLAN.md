@@ -150,7 +150,10 @@ and feed back into how the next night plays.
 
 ### M8 — Title screen
 **You get:** **START**, **INSTRUCTIONS**, **OPTIONS**. Instructions explains the
-controls and the goal. Options holds volume and a couple of toggles. Placeholder
+controls and the goal. Options holds volume, a couple of toggles, and a
+**difficulty setting** — the dials you've been editing by hand in `config.js`
+(wave sizes, scalper speed, barricade strength) exposed as presets the player
+can actually choose. Placeholder
 8-bit art now — your DOOM-inspired splash drops straight in whenever it's ready.
 **Done when:** You never hit browser-refresh to start a new run again.
 **The one new idea:** *Scenes* — the game swapping cleanly between whole modes
@@ -291,7 +294,7 @@ Nothing blocking. Noted here so they don't get lost:
 
 ## Status
 
-Phase 1 in progress. Next up: **M6 — Survive the night**.
+Phase 1 in progress. Next up: **M7 — Paycheck and upgrades**.
 
 | Milestone | Status |
 |---|---|
@@ -300,7 +303,7 @@ Phase 1 in progress. Next up: **M6 — Survive the night**.
 | M3 Draw your weapon | ☑ |
 | M4 Scalpers and the barricade | ☑ |
 | M5 The breach | ☑ |
-| M6 Survive the night | ☐ |
+| M6 Survive the night | ☑ |
 | M7 Paycheck and upgrades | ☐ |
 | M8 Title screen | ☐ |
 | M9 Interviews: hire help | ☐ |

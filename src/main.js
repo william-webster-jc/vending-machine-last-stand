@@ -13,9 +13,10 @@ import { CONFIG } from './config.js';
 import { drawScene } from './render.js';
 import { updateGuard } from './entities/guard.js';
 import { updateBullets } from './entities/bullet.js';
-import { updateScalpers, updateScalperSpawning } from './entities/scalper.js';
+import { updateScalpers } from './entities/scalper.js';
 import { updateMachine } from './entities/machine.js';
 import { createWorld, GAME_STATE } from './world.js';
+import { updateNight } from './night.js';
 import { attachMouseTo, consumeAnyPress, clearPendingPress } from './input.js';
 
 const canvas = document.getElementById('game');
@@ -85,35 +86,36 @@ function update(deltaSeconds) {
 
   // Each game state does a completely different job. Splitting them like this
   // is what stops "is the game over?" checks leaking into every other file.
-  if (world.state === GAME_STATE.GAME_OVER) {
-    updateGameOver(deltaSeconds);
+  if (world.state === GAME_STATE.PLAYING) {
+    updatePlaying(deltaSeconds);
     return;
   }
 
-  updatePlaying(deltaSeconds);
+  updateBetweenNights(deltaSeconds);
 }
 
 function updatePlaying(deltaSeconds) {
-  world.elapsedSeconds += deltaSeconds;
-
-  updateScalperSpawning(world, deltaSeconds);
+  updateNight(world, deltaSeconds);
 
   updateGuard(world.guard, world, deltaSeconds);
   updateScalpers(world, deltaSeconds);
   updateBullets(world, deltaSeconds);
   updateMachine(world, deltaSeconds);
 
-  // Losing happens inside updateMachine. If it just did, swallow whatever was
-  // being pressed at that moment so the shot that lost you the night doesn't
-  // immediately skip the game over screen too.
-  if (world.state === GAME_STATE.GAME_OVER) {
+  // The night can end inside updateNight or updateMachine. If it just did,
+  // swallow whatever was being pressed at that moment, so the shot that lost
+  // you the night doesn't immediately skip the screen you just earned.
+  if (world.state !== GAME_STATE.PLAYING) {
     clearPendingPress();
   }
 }
 
-// The world is frozen here — nothing moves, nothing spawns. All that ticks is
-// the short delay before restarting is allowed.
-function updateGameOver(deltaSeconds) {
+// Shared by both endings. The world is frozen — nothing moves, nothing spawns.
+// All that ticks is the short delay before continuing is allowed.
+//
+// Surviving carries your day count forward into the next night. Losing sends
+// you back to night one.
+function updateBetweenNights(deltaSeconds) {
   world.gameOverCountdown -= deltaSeconds;
 
   if (world.gameOverCountdown > 0) {
@@ -121,9 +123,10 @@ function updateGameOver(deltaSeconds) {
     return;
   }
 
-  if (consumeAnyPress()) {
-    world = createWorld();
-  }
+  if (!consumeAnyPress()) return;
+
+  const survived = world.state === GAME_STATE.NIGHT_SURVIVED;
+  world = createWorld(survived ? world.day + 1 : 1);
 }
 
 // -----------------------------------------------------------------------------

@@ -26,7 +26,7 @@ export const SCALPER_STATE = {
 // SPAWNING
 // -----------------------------------------------------------------------------
 
-export function spawnScalper(world) {
+export function spawnScalper(world, speedMultiplier = 1) {
   const { width, height, speed, speedVariation, spawnMargin, maxHealth } = CONFIG.scalper;
   const { walkTopY, walkBottomY } = CONFIG.world;
 
@@ -40,7 +40,7 @@ export function spawnScalper(world) {
     y: walkTopY + Math.random() * (walkBottomY - walkTopY),
     width,
     height,
-    speed: speed * variation,
+    speed: speed * variation * speedMultiplier,
     health: maxHealth,
     state: SCALPER_STATE.APPROACHING,
 
@@ -51,17 +51,6 @@ export function spawnScalper(world) {
     // the moment it starts heading there, so it doesn't wander frame to frame.
     machineTarget: null,
   });
-}
-
-// TEMPORARY for M4: a steady trickle, so there's always something to shoot at.
-// M6 replaces this entirely with real waves that build through the night.
-export function updateScalperSpawning(world, deltaSeconds) {
-  world.scalperSpawnCountdown -= deltaSeconds;
-
-  if (world.scalperSpawnCountdown <= 0) {
-    spawnScalper(world);
-    world.scalperSpawnCountdown = CONFIG.scalper.spawnIntervalSeconds;
-  }
 }
 
 // -----------------------------------------------------------------------------

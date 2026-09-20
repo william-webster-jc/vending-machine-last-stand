@@ -77,7 +77,7 @@ export const CONFIG = {
 
     // How much punishment the wall takes before it breaks open. This is
     // effectively your health bar for the whole night.
-    maxHealth: 120,
+    maxHealth: 200,
 
     // Keeps YOU penned in even after the wall is smashed. Scalpers always come
     // through a breach; this is only about whether you can push forward onto
@@ -129,9 +129,8 @@ export const CONFIG = {
     // How close they get before they stop and start attacking.
     attackReach: 3,
 
-    // TEMPORARY for M4: a steady trickle so there's something to shoot.
-    // The real wave system replaces this in M6.
-    spawnIntervalSeconds: 3.2,
+    // How far off the right edge they appear, so they walk into view rather
+    // than blinking into existence. How MANY arrive is set by night.js now.
     spawnMargin: 20,
   },
 
@@ -265,6 +264,16 @@ export const CONFIG = {
     healthBarWarning: '#e8c34a',
     healthBarCritical: '#e05454',
 
+    // Night survived screen
+    sunriseTitle: '#ffd479',
+    sunriseVeil: 'rgba(24, 14, 30, 0.74)',
+
+    // Sun and wave banner
+    sun: '#ffe9a8',
+    sunGlow: '#ffb45e',
+    waveBanner: '#ffe27a',
+    waveBannerShadow: '#301a2a',
+
     // Game over screen
     gameOverVeil: 'rgba(12, 8, 20, 0.78)',
     gameOverTitle: '#ff5d5d',
@@ -280,6 +289,73 @@ export const CONFIG = {
     // Debug readout
     debugText: '#9dff7a',
     debugLabel: '#7a7a96',
+  },
+
+  // ---------------------------------------------------------------------------
+  // THE NIGHT
+  //
+  // A shift runs for a fixed length of time and ends at sunrise. Waves are
+  // scheduled inside that window rather than waiting for you to clear them,
+  // which is what lets the sky double as the clock.
+  // ---------------------------------------------------------------------------
+  night: {
+    // How long one night lasts, in seconds. This is the single biggest dial
+    // on the whole game — it sets how long a run takes and how much punishment
+    // a night adds up to.
+    durationSeconds: 120,
+
+    // The night is carved into this many equal slots, one wave each.
+    wavesPerNight: 5,
+
+    // Of each slot, how long scalpers actually arrive for. The rest of the
+    // slot is your breather — time to catch up, not time to relax.
+    waveSpawnSeconds: 15,
+
+    // How many scalpers in the first wave of night one.
+    firstWaveSize: 2,
+
+    // Added per wave as the night goes on: waves become 2, 4, 6, 8, 10.
+    waveSizeGrowth: 2,
+
+    // Added to EVERY wave for each night you survive, so night three is
+    // meaningfully harder than night one from its very first wave.
+    waveSizeGrowthPerDay: 2,
+
+    // Scalpers speed up as the night wears on, and across nights.
+    speedGrowthPerWave: 0.04,
+    speedGrowthPerDay: 0.08,
+
+    // How long the "WAVE 3" banner stays on screen.
+    waveBannerSeconds: 1.8,
+  },
+
+  // ---------------------------------------------------------------------------
+  // THE SKY
+  //
+  // The clock you read by looking up. Each stage is a point in the night, the
+  // sky colour there, and how visible the stars are. Everything between two
+  // stages is blended, so the change is continuous rather than snapping.
+  // ---------------------------------------------------------------------------
+  sky: {
+    stages: [
+      { at: 0.00, color: '#161634', starVisibility: 1.00 },
+      { at: 0.50, color: '#1f1f45', starVisibility: 0.95 },
+      { at: 0.72, color: '#3b3163', starVisibility: 0.45 },
+      { at: 0.86, color: '#7e4f7c', starVisibility: 0.10 },
+      { at: 0.94, color: '#c9707a', starVisibility: 0.00 },
+      { at: 0.98, color: '#e8a068', starVisibility: 0.00 },
+      { at: 1.00, color: '#ffd9a2', starVisibility: 0.00 },
+    ],
+
+    // When the moon has fully set and when the sun starts to climb.
+    moonSetsAt: 0.70,
+    sunRisesAt: 0.80,
+
+    // A warm wash over the whole mall as dawn arrives, so the room lights up
+    // with the sky instead of staying pitch dark behind a bright window.
+    dawnWashStartsAt: 0.74,
+    dawnWashMaxAlpha: 0.30,
+    dawnWashColor: '255, 190, 120',
   },
 
   // ---------------------------------------------------------------------------
@@ -307,7 +383,7 @@ export const CONFIG = {
   debug: {
     showDebug: true,
     fpsSampleSeconds: 0.5,
-    buildLabel: 'M5 - THE BREACH',
+    buildLabel: 'M6 - SURVIVE THE NIGHT',
 
     // Shows your exact position on screen. Handy while testing movement.
     showPosition: true,

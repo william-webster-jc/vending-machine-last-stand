@@ -16,14 +16,28 @@ import { createBarricade } from './entities/barricade.js';
 export const GAME_STATE = {
   PLAYING: 'playing',
   GAME_OVER: 'game-over',
+  NIGHT_SURVIVED: 'night-survived',
 };
 
-export function createWorld() {
+// `day` is passed in so surviving a night can carry the count forward into
+// the next one. Everything else starts fresh.
+export function createWorld(day = 1) {
   return {
     state: GAME_STATE.PLAYING,
 
-    // How long this night has lasted. M6 turns this into the sunrise timer.
+    // Which night of the job this is. Night one is day 1.
+    day,
+
+    // How far into tonight's shift we are. Sunrise is at night.durationSeconds.
     elapsedSeconds: 0,
+
+    // Wave bookkeeping, driven by night.js. -1 means no wave has started yet,
+    // so the first one triggers properly on the opening frame.
+    waveIndex: -1,
+    scalpersLeftInWave: 0,
+    spawnGapSeconds: 0,
+    spawnCountdown: 0,
+    waveBannerTimer: 0,
 
     guard: {
       x: CONFIG.guard.startX,
@@ -43,9 +57,6 @@ export function createWorld() {
 
     // Every scalper on the floor right now.
     scalpers: [],
-
-    // Counts down to the next scalper arriving. M6 replaces this with waves.
-    scalperSpawnCountdown: CONFIG.scalper.spawnIntervalSeconds,
 
     // Running tally of how many you've put down tonight.
     scalpersStopped: 0,

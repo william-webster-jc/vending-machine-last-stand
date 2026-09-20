@@ -60,3 +60,31 @@ export function drawHealthBar(ctx, x, y, width, height, fraction) {
   ctx.fillStyle = fillColor;
   ctx.fillRect(x, y, Math.round(width * safeFraction), height);
 }
+
+// Blend two hex colours together. `amount` is 0 for all of the first colour,
+// 1 for all of the second, and anything between for a mix.
+//
+// This is what lets the sky slide smoothly from midnight blue to sunrise
+// orange instead of snapping between a handful of fixed colours.
+export function mixColors(fromHex, toHex, amount) {
+  const t = Math.min(Math.max(amount, 0), 1);
+
+  const from = hexToRgb(fromHex);
+  const to = hexToRgb(toHex);
+
+  const r = Math.round(from.r + (to.r - from.r) * t);
+  const g = Math.round(from.g + (to.g - from.g) * t);
+  const b = Math.round(from.b + (to.b - from.b) * t);
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function hexToRgb(hex) {
+  const value = parseInt(hex.slice(1), 16);
+
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+}

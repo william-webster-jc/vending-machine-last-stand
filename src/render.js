@@ -14,9 +14,19 @@ import { drawScalper } from './entities/scalper-art.js';
 import { drawBullets } from './entities/bullet.js';
 import { getMousePosition } from './input.js';
 import { GAME_STATE } from './world.js';
+import { mixColors } from './pixel.js';
+import {
+  getNightProgress,
+  getSkyState,
+  getMoonVisibility,
+  getSunRise,
+  getDawnWashAlpha,
+} from './night.js';
 
 export function drawScene(ctx, world, fps) {
-  drawBackWall(ctx);
+  const nightProgress = getNightProgress(world);
+
+  drawBackWall(ctx, nightProgress);
   drawFloor(ctx);
 
   drawMachine(ctx, world.machine);
@@ -27,7 +37,17 @@ export function drawScene(ctx, world, fps) {
   // wall at whatever is on the far side of it.
   drawBullets(ctx, world);
 
-  if (world.state === GAME_STATE.GAME_OVER) {
+  // Warm dawn light over the whole mall, so the room brightens along with the
+  // sky instead of staying pitch dark behind a sunrise-coloured window.
+  drawDawnWash(ctx, nightProgress);
+
+  if (world.waveBannerTimer > 0 && world.state === GAME_STATE.PLAYING) {
+    drawWaveBanner(ctx, world);
+  }
+
+  if (world.state === GAME_STATE.NIGHT_SURVIVED) {
+    drawNightSurvivedScreen(ctx, world);
+  } else if (world.state === GAME_STATE.GAME_OVER) {
     drawGameOverScreen(ctx, world);
   } else {
     drawCrosshair(ctx);
@@ -39,7 +59,7 @@ export function drawScene(ctx, world, fps) {
 }
 
 // The mall's back wall, with windows showing the night sky outside.
-function drawBackWall(ctx) {
+function drawBackWall(ctx, nightProgress) {
   const { width } = CONFIG.screen;
   const { horizonY } = CONFIG.world;
   const c = CONFIG.colors;
@@ -51,7 +71,7 @@ function drawBackWall(ctx) {
   ctx.fillStyle = c.wallTrimUpper;
   ctx.fillRect(0, 0, width, 8);
 
-  drawWindows(ctx);
+  drawWindows(ctx, nightProgress);
 
   // Baseboard where the wall meets the floor
   ctx.fillStyle = c.wallBaseboard;
@@ -59,7 +79,7 @@ function drawBackWall(ctx) {
 }
 
 // Evenly spaced windows. Each one is a dark frame around a patch of night sky.
-function drawWindows(ctx) {
+function drawWindows(ctx, nightProgress) {
   const { width } = CONFIG.screen;
   const c = CONFIG.colors;
 
@@ -74,6 +94,17 @@ function drawWindows(ctx) {
   const rowWidth = windowCount * step - gap;
   const startX = Math.round((width - rowWidth) / 2);
 
+  const sky = getSkyState(nightProgress);
+  const skyColor = mixColors(sky.earlierColor, sky.laterColor, sky.blend);
+  const moonVisibility = getMoonVisibility(nightProgress);
+  const sunRise = getSunRise(nightProgress);
+
+  // Stars and the moon fade by being mixed TOWARD the sky behind them, rather
+  // than by going transparent. At this size that reads better, and it keeps
+  // everything to flat opaque pixels like the rest of the game.
+  const starColor = mixColors(skyColor, c.star, sky.starVisibility);
+  const moonColor = mixColors(skyColor, c.moon, moonVisibility);
+
   for (let i = 0; i < windowCount; i++) {
     const x = startX + i * step;
     if (x + windowWidth < 0 || x > width) continue;
@@ -82,23 +113,30 @@ function drawWindows(ctx) {
     ctx.fillStyle = c.windowFrame;
     ctx.fillRect(x - 2, windowY - 2, windowWidth + 4, windowHeight + 4);
 
-    // Night sky
-    ctx.fillStyle = c.skyNight;
+    // The sky itself — this is the clock.
+    ctx.fillStyle = skyColor;
     ctx.fillRect(x, windowY, windowWidth, windowHeight);
 
-    // A couple of stars, placed by a fixed pattern so they don't flicker
-    // around between frames.
-    ctx.fillStyle = c.star;
-    ctx.fillRect(x + 6 + (i % 3) * 5, windowY + 8, 1, 1);
-    ctx.fillRect(x + 22 - (i % 2) * 6, windowY + 17, 1, 1);
-    ctx.fillRect(x + 12 + (i % 4) * 3, windowY + 31, 1, 1);
+    // Stars, placed by a fixed pattern so they don't flicker between frames.
+    if (sky.starVisibility > 0.02) {
+      ctx.fillStyle = starColor;
+      ctx.fillRect(x + 6 + (i % 3) * 5, windowY + 8, 1, 1);
+      ctx.fillRect(x + 22 - (i % 2) * 6, windowY + 17, 1, 1);
+      ctx.fillRect(x + 12 + (i % 4) * 3, windowY + 31, 1, 1);
+    }
 
-    // The moon sits in one window only.
-    if (i === 1) {
-      ctx.fillStyle = c.moon;
+    // The moon sits in one window only, and sets as the night wears on.
+    if (i === 1 && moonVisibility > 0.02) {
+      ctx.fillStyle = moonColor;
       ctx.fillRect(x + 22, windowY + 6, 6, 6);
-      ctx.fillStyle = c.skyNight;
+      ctx.fillStyle = skyColor;
       ctx.fillRect(x + 20, windowY + 5, 4, 5);
+    }
+
+    // The sun climbs in a different window, late on. Seeing it clear the sill
+    // is how you know you're nearly through the shift.
+    if (i === 4 && sunRise > 0) {
+      drawRisingSun(ctx, x, windowY, windowWidth, windowHeight, sunRise);
     }
 
     // Window cross-bars
@@ -106,6 +144,31 @@ function drawWindows(ctx) {
     ctx.fillRect(x + windowWidth / 2 - 1, windowY, 2, windowHeight);
     ctx.fillRect(x, windowY + windowHeight / 2 - 1, windowWidth, 2);
   }
+}
+
+function drawRisingSun(ctx, x, windowY, windowWidth, windowHeight, rise) {
+  const c = CONFIG.colors;
+
+  const sunRadius = 5;
+  const centerX = Math.round(x + windowWidth / 2);
+
+  // Starts below the sill and climbs to the upper third of the window.
+  const bottom = windowY + windowHeight + sunRadius;
+  const top = windowY + windowHeight * 0.3;
+  const centerY = Math.round(bottom + (top - bottom) * rise);
+
+  ctx.fillStyle = c.sunGlow;
+  ctx.fillRect(centerX - sunRadius - 1, centerY - sunRadius + 1, sunRadius * 2 + 2, sunRadius * 2 - 2);
+  ctx.fillRect(centerX - sunRadius + 1, centerY - sunRadius - 1, sunRadius * 2 - 2, sunRadius * 2 + 2);
+
+  ctx.fillStyle = c.sun;
+  ctx.fillRect(centerX - sunRadius + 1, centerY - sunRadius + 2, sunRadius * 2 - 2, sunRadius * 2 - 4);
+  ctx.fillRect(centerX - sunRadius + 2, centerY - sunRadius + 1, sunRadius * 2 - 4, sunRadius * 2 - 2);
+
+  // Clip anything that would spill below the sill, so it genuinely rises
+  // out of the horizon rather than floating in front of the frame.
+  ctx.fillStyle = CONFIG.colors.wallBack;
+  ctx.fillRect(x - 2, windowY + windowHeight, windowWidth + 4, sunRadius + 3);
 }
 
 // Checkerboard mall tiles.
@@ -171,6 +234,81 @@ function drawCrosshair(ctx) {
   ctx.fillRect(x + 3, y, 3, 1);
   ctx.fillRect(x, y - 5, 1, 3);
   ctx.fillRect(x, y + 3, 1, 3);
+}
+
+// Warm light spilling over the mall as the sun comes up.
+function drawDawnWash(ctx, nightProgress) {
+  const alpha = getDawnWashAlpha(nightProgress);
+  if (alpha <= 0) return;
+
+  ctx.fillStyle = `rgba(${CONFIG.sky.dawnWashColor}, ${alpha})`;
+  ctx.fillRect(0, 0, CONFIG.screen.width, CONFIG.screen.height);
+}
+
+// "WAVE 3" across the middle of the screen when a new wave starts.
+//
+// It fades out over its last stretch rather than vanishing, so it doesn't
+// snap away mid-fight and pull your eye back to it.
+function drawWaveBanner(ctx, world) {
+  const { width } = CONFIG.screen;
+  const c = CONFIG.colors;
+
+  const remaining = world.waveBannerTimer;
+  const fadeOverSeconds = 0.6;
+  const fade = Math.min(remaining / fadeOverSeconds, 1);
+
+  ctx.save();
+  ctx.globalAlpha = fade;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '16px monospace';
+
+  // A hard offset shadow, which is how 8-bit games made text readable over
+  // a busy background without any blurring.
+  ctx.fillStyle = c.waveBannerShadow;
+  ctx.fillText(`WAVE ${world.waveIndex + 1}`, width / 2 + 1, 57);
+  ctx.fillStyle = c.waveBanner;
+  ctx.fillText(`WAVE ${world.waveIndex + 1}`, width / 2, 56);
+
+  ctx.restore();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+}
+
+// The screen you earn by surviving until sunrise.
+function drawNightSurvivedScreen(ctx, world) {
+  const { width, height } = CONFIG.screen;
+  const c = CONFIG.colors;
+  const stats = world.finalStats;
+
+  ctx.fillStyle = c.sunriseVeil;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.font = '16px monospace';
+  ctx.fillStyle = c.sunriseTitle;
+  ctx.fillText('NIGHT SURVIVED', width / 2, 64);
+
+  ctx.font = '8px monospace';
+  ctx.fillStyle = c.gameOverText;
+  ctx.fillText(`THE SUN IS UP. SHIFT ${world.day} IS OVER.`, width / 2, 84);
+
+  drawStatLines(ctx, [
+    ['SCALPERS STOPPED', `${stats.scalpersStopped}`],
+    ['PACKS SAVED', `${stats.packsSaved} / ${CONFIG.machine.packCount}`],
+    ['STILL ON THE FLOOR', `${stats.scalpersOnFloor}`],
+    ['BARRICADE', stats.barricadeHeld ? 'HELD' : 'BREACHED'],
+  ]);
+
+  if (world.gameOverCountdown <= 0) {
+    ctx.fillStyle = c.gameOverHint;
+    ctx.fillText(`PRESS ANY KEY TO START NIGHT ${world.day + 1}`, width / 2, 172);
+  }
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
 }
 
 // The screen you earn by losing.
@@ -276,6 +414,11 @@ function drawDebugReadout(ctx, world, fps) {
     ctx.fillText(`scalpers ${world.scalpers.length}`, 4, 34);
     ctx.fillText(`stopped ${world.scalpersStopped}`, 4, 44);
     ctx.fillText(`packs ${world.machine.packsRemaining}`, 4, 54);
+    ctx.fillText(
+      `day ${world.day}  wave ${world.waveIndex + 1}  ${Math.round(getNightProgress(world) * 100)}%`,
+      4,
+      64,
+    );
   }
 
   ctx.textBaseline = 'bottom';
