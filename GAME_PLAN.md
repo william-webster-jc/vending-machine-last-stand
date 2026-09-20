@@ -212,16 +212,23 @@ game needing to know the interface exists.
 # PHASE 3 — DEPTH
 *Goal: reasons to play the 40th night.*
 
-### M14 — Scalper archetypes
-**Jace's difficulty notes (from after M6):** scalpers need more health overall, and
-real variety within a night — some genuinely faster, some genuinely tankier.
+### M14 — Scalper archetypes  ☑ *(done early)*
+**Built:** four types, introduced over the first three nights so you learn each one
+against a crowd you already understand.
 
-*Partly done since:* speed now varies widely per scalper (20-52 px/sec), and health
-scales by night — 3 bullets to kill on night one, 4 on night two, and so on. What's
-still missing is variety WITHIN a single night: every scalper on a given night is
-still identical. Tanky and fragile variants are the remaining fix.
+- **SCALPER** — the baseline. 100% of night one.
+- **BULK BUYER** — 3.2x health, half again as big, crawls. Ignore one and it's
+  still chewing the wall when everything else is dead.
+- **LINE RUNNER** — 0.4x health, small, sprints at nearly double speed. Dies
+  easiest but has to be dealt with first.
+- **RIOT BUYER** — front plate soaks 85% of body shots. Bare-headed on purpose:
+  everything below the neck is plated, so the exposed head is visibly the one
+  soft thing on it.
 
-Distinct types, each demanding a different response:
+**Still open for a later pass:** a Sniper Bot that stops at range and shoots back,
+and a Line Cutter that shoves others forward to disrupt your aim priority.
+
+Original notes, for reference:
 - **Camper** — slow, high HP, parks at the barricade and grinds
 - **Runner** — fast, fragile, first to the breach
 - **Bulk Buyer** — huge, shoves through, buys packs alarmingly fast

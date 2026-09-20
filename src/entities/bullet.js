@@ -12,7 +12,7 @@
 // =============================================================================
 
 import { CONFIG } from '../config.js';
-import { getScalperHitBox } from './scalper.js';
+import { getScalperHitBox, getScalperHeadBox } from './scalper.js';
 
 // Create one bullet, travelling outward from (x, y) in the given direction.
 // The angle is in radians — 0 points right, and it goes clockwise from there.
@@ -63,14 +63,32 @@ export function updateBullets(world, deltaSeconds) {
 function hitAScalper(bullet, world) {
   for (const scalper of world.scalpers) {
     if (scalper.health <= 0) continue;
+    if (!isOverlapping(bullet, getScalperHitBox(scalper))) continue;
 
-    if (isOverlapping(bullet, getScalperHitBox(scalper))) {
-      scalper.health -= bullet.damage;
-      return true;
-    }
+    scalper.health -= getDamageDealt(bullet, scalper);
+    scalper.hitFlash = CONFIG.scalper.hitFlashSeconds;
+    return true;
   }
 
   return false;
+}
+
+// How much of a shot actually lands.
+//
+// A riot plate covers the body, so body shots barely scratch one — the head
+// is the way in. Everyone else takes the full hit wherever you connect, so
+// you're not asked to aim precisely at things that don't require it.
+function getDamageDealt(bullet, scalper) {
+  if (!scalper.armored) return bullet.damage;
+
+  const head = getScalperHeadBox(scalper);
+  if (isOverlapping(bullet, head)) {
+    scalper.lastHitWasHeadshot = true;
+    return bullet.damage;
+  }
+
+  scalper.lastHitWasHeadshot = false;
+  return Math.max(1, Math.round(bullet.damage * CONFIG.armorDamageFactor));
 }
 
 // Two rectangles overlap unless one is entirely past the other on some side.

@@ -90,6 +90,75 @@ export const CONFIG = {
   },
 
   // ---------------------------------------------------------------------------
+  // SCALPER TYPES
+  //
+  // Every kind of scalper is an entry in this list. They share all their
+  // behaviour — walk in, chew the wall, mob the machine — and differ only in
+  // these numbers, so a new type is a new entry rather than new code.
+  //
+  //   healthScale / sizeScale  relative to the plain scalper
+  //   spawnWeight    how often it turns up. Higher = more common.
+  //   firstNight     the night it starts appearing at all
+  //   armored        body shots barely scratch it; aim for the head
+  // ---------------------------------------------------------------------------
+  scalperTypes: [
+    {
+      id: 'shopper',
+      name: 'SCALPER',
+      healthScale: 1,
+      sizeScale: 1,
+      speedMin: 20,
+      speedMax: 52,
+      spawnWeight: 100,
+      firstNight: 1,
+      armored: false,
+    },
+    {
+      id: 'bulkbuyer',
+      name: 'BULK BUYER',
+      // Slow, huge, and takes most of a magazine. Ignore one and it will
+      // still be there chewing the wall when everything else is dead.
+      healthScale: 3.2,
+      sizeScale: 1.5,
+      speedMin: 11,
+      speedMax: 18,
+      spawnWeight: 22,
+      firstNight: 2,
+      armored: false,
+    },
+    {
+      // Tiny, frail, and at the barricade before you've finished reloading.
+      // The one you have to deal with first even though it dies easiest.
+      id: 'runner',
+      name: 'LINE RUNNER',
+      healthScale: 0.4,
+      sizeScale: 0.78,
+      speedMin: 70,
+      speedMax: 96,
+      spawnWeight: 34,
+      firstNight: 2,
+      armored: false,
+    },
+    {
+      id: 'armored',
+      name: 'RIOT BUYER',
+      // Front plate soaks almost everything. The head is the only way in,
+      // and you have to take it while it walks at you.
+      healthScale: 1.5,
+      sizeScale: 1.12,
+      speedMin: 17,
+      speedMax: 28,
+      spawnWeight: 20,
+      firstNight: 3,
+      armored: true,
+    },
+  ],
+
+  // How much of a shot gets through a riot plate. At 0.15 it takes nearly
+  // seven body shots to do the damage of one to the head.
+  armorDamageFactor: 0.15,
+
+  // ---------------------------------------------------------------------------
   // SCALPERS — they walk in from the right and tear at the barricade.
   // Different scalper types arrive in M14; for now they're all the same.
   // ---------------------------------------------------------------------------
@@ -136,6 +205,11 @@ export const CONFIG = {
 
     // How close they get before they stop and start attacking.
     attackReach: 3,
+
+    // How long a scalper flashes white after being hit. Small, but it's the
+    // difference between 'did that connect?' and knowing it did — and it
+    // matters most on armoured ones, where the answer isn't obvious.
+    hitFlashSeconds: 0.07,
 
     // How far off the right edge they appear, so they walk into view rather
     // than blinking into existence. How MANY arrive is set by night.js now.
@@ -334,6 +408,17 @@ export const CONFIG = {
     guardCap: '#17253f',
     guardBoot: '#2b2b35',
     gunMetal: '#4d4d59',
+
+    // Scalper variants
+    bruteHoodie: '#a34fd6',
+    bruteHoodieDark: '#6f2fa0',
+    bruteBackpack: '#e07a54',
+    runnerHoodie: '#54c8e0',
+    runnerHoodieDark: '#2f8aa8',
+    runnerBackpack: '#e0d054',
+    armorPlate: '#9aa4bd',
+    armorPlateDark: '#5f6885',
+    armorVisor: '#ff6a6a',
 
     // Scalpers — bright and cartoonish, never menacing
     scalperHoodie: '#8a54e0',

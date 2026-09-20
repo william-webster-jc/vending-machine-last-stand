@@ -40,26 +40,70 @@ export function getScalperHealth(day) {
   return bullets * CONFIG.bullet.damage;
 }
 
+// -----------------------------------------------------------------------------
+// WHO TURNS UP
+// -----------------------------------------------------------------------------
+
+export function getScalperType(id) {
+  return CONFIG.scalperTypes.find((type) => type.id === id) || CONFIG.scalperTypes[0];
+}
+
+// Types are introduced over several nights rather than all at once, so you
+// get to learn each one against a crowd you already understand.
+function getTypesAvailableOn(day) {
+  return CONFIG.scalperTypes.filter((type) => day >= type.firstNight);
+}
+
+// Pick a type at random, but weighted — plain scalpers are the bulk of any
+// crowd and the specials are the punctuation.
+//
+// The trick is to imagine all the weights laid end to end as one long line,
+// drop a pin anywhere on it, and see whose stretch it landed in. Bigger
+// weight, longer stretch, more likely to be picked.
+function pickType(day) {
+  const available = getTypesAvailableOn(day);
+  const totalWeight = available.reduce((sum, type) => sum + type.spawnWeight, 0);
+
+  let pin = Math.random() * totalWeight;
+  for (const type of available) {
+    pin -= type.spawnWeight;
+    if (pin <= 0) return type;
+  }
+
+  return available[available.length - 1];
+}
+
 export function spawnScalper(world, speedMultiplier = 1) {
-  const { width, height, speedMin, speedMax, spawnMargin } = CONFIG.scalper;
+  const { width, height, spawnMargin } = CONFIG.scalper;
   const { walkTopY, walkBottomY } = CONFIG.world;
 
-  // Each one picks its own pace from the range, so a group arrives as a ragged
-  // line rather than a marching block.
-  const ownSpeed = speedMin + Math.random() * (speedMax - speedMin);
+  const type = pickType(world.day);
+
+  // Each one picks its own pace from its type's range, so even a group of the
+  // same type arrives as a ragged line rather than a marching block.
+  const ownSpeed = type.speedMin + Math.random() * (type.speedMax - type.speedMin);
+  const health = Math.round(getScalperHealth(world.day) * type.healthScale);
 
   world.scalpers.push({
+    typeId: type.id,
+    armored: type.armored,
+    sizeScale: type.sizeScale,
+
     x: CONFIG.screen.width + spawnMargin,
     y: walkTopY + Math.random() * (walkBottomY - walkTopY),
-    width,
-    height,
+    width: Math.round(width * type.sizeScale),
+    height: Math.round(height * type.sizeScale),
     speed: ownSpeed * speedMultiplier,
-    health: getScalperHealth(world.day),
-    maxHealth: getScalperHealth(world.day),
+    health,
+    maxHealth: health,
     state: SCALPER_STATE.APPROACHING,
 
     // Used only for the walk animation — counts up as they move.
     walkCycle: Math.random() * 10,
+
+    // Counts down after being shot, so we can flash them white.
+    hitFlash: 0,
+    lastHitWasHeadshot: false,
 
     // The exact spot in front of the machine this one is making for. Assigned
     // the moment it starts heading there, so it doesn't wander frame to frame.
@@ -137,6 +181,8 @@ function separateScalpers(scalpers) {
 }
 
 function updateOneScalper(scalper, world, deltaSeconds) {
+  if (scalper.hitFlash > 0) scalper.hitFlash -= deltaSeconds;
+
   switch (scalper.state) {
     case SCALPER_STATE.APPROACHING:
       approachBarricade(scalper, world, deltaSeconds);
@@ -294,5 +340,21 @@ export function getScalperHitBox(scalper) {
     right: scalper.x + halfWidth,
     top: scalper.y - scalper.height,
     bottom: scalper.y,
+  };
+}
+
+// The head, as a share of the whole sprite. Scales with the body, so a Bulk
+// Buyer's head is a bigger target than a Line Runner's — which is fair, since
+// the big one is the easy shot and the small one isn't.
+export function getScalperHeadBox(scalper) {
+  const body = getScalperHitBox(scalper);
+  const headHeight = scalper.height * 0.35;
+  const headInset = scalper.width * 0.2;
+
+  return {
+    left: body.left + headInset,
+    right: body.right - headInset,
+    top: body.top,
+    bottom: body.top + headHeight,
   };
 }
