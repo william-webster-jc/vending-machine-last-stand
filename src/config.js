@@ -97,7 +97,14 @@ export const CONFIG = {
     width: 13,
     height: 26,
 
-    maxHealth: 20,
+    // How many bullets it takes to drop one, on night one, with the pistol
+    // you start with. Their actual health is worked out from this and the
+    // base bullet damage, so these numbers mean what they say.
+    bulletsToKillOnNightOne: 3,
+
+    // Scalpers get tougher every night: night 2 takes 4 bullets, night 3
+    // takes 5, and so on. Buying HEAVIER ROUNDS is what claws that back.
+    extraBulletsPerNight: 1,
 
     // Each scalper gets its own walking speed somewhere in this range, in
     // pixels per second. A WIDE range is what makes a crowd read as a crowd:

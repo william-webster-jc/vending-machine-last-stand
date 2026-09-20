@@ -45,7 +45,7 @@ function drawScalperHealthBar(ctx, scalper, top) {
 
   const x = Math.round(scalper.x - barWidth / 2);
   const y = top - 5;
-  const fraction = scalper.health / CONFIG.scalper.maxHealth;
+  const fraction = scalper.health / scalper.maxHealth;
 
   drawHealthBar(ctx, x, y, barWidth, barHeight, fraction);
 }

@@ -214,10 +214,12 @@ game needing to know the interface exists.
 
 ### M14 — Scalper archetypes
 **Jace's difficulty notes (from after M6):** scalpers need more health overall, and
-real variety within a wave — some genuinely faster, some genuinely tankier, rather
-than everyone being the same person at a slightly different speed. Speed already
-varies a little (`scalper.speedVariation`); health does not vary at all yet, and
-that's the bigger miss. Tanky variants are the fix.
+real variety within a night — some genuinely faster, some genuinely tankier.
+
+*Partly done since:* speed now varies widely per scalper (20-52 px/sec), and health
+scales by night — 3 bullets to kill on night one, 4 on night two, and so on. What's
+still missing is variety WITHIN a single night: every scalper on a given night is
+still identical. Tanky and fragile variants are the remaining fix.
 
 Distinct types, each demanding a different response:
 - **Camper** — slow, high HP, parks at the barricade and grinds

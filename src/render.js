@@ -29,6 +29,8 @@ import {
 } from './night.js';
 
 export const TITLE_MENU = ['START SHIFT', 'INSTRUCTIONS', 'OPTIONS'];
+export const PAUSE_MENU = ['RESUME SHIFT', 'OPTIONS', 'ABANDON SHIFT'];
+export const PAUSE_MENU_TOP_Y = 104;
 export const OPTIONS_MENU_TOP_Y = 96;
 export const TITLE_MENU_TOP_Y = 128;
 
@@ -54,7 +56,10 @@ export function drawScene(ctx, world, fps) {
     drawNightBanner(ctx, world);
   }
 
-  if (world.state === GAME_STATE.TITLE) {
+  if (world.state === GAME_STATE.PAUSED) {
+    drawPauseScreen(ctx, world);
+    drawCrosshair(ctx);
+  } else if (world.state === GAME_STATE.TITLE) {
     drawTitleScreen(ctx, world);
     drawCrosshair(ctx);
   } else if (world.state === GAME_STATE.INSTRUCTIONS) {
@@ -337,8 +342,45 @@ function drawNightSurvivedScreen(ctx, world) {
 }
 
 // =============================================================================
-// TITLE, INSTRUCTIONS AND OPTIONS
+// TITLE, PAUSE, INSTRUCTIONS AND OPTIONS
 // =============================================================================
+
+// Paused mid-shift. Drawn over the frozen scene rather than replacing it, so
+// you can still see exactly what you're going back to.
+function drawPauseScreen(ctx, world) {
+  const { width } = CONFIG.screen;
+  const c = CONFIG.colors;
+
+  ctx.fillStyle = c.gameOverVeil;
+  ctx.fillRect(0, 0, width, CONFIG.screen.height);
+
+  drawText(ctx, 'PAUSED', width / 2, 48, {
+    color: c.titleMain,
+    scale: 3,
+    align: 'center',
+  });
+
+  drawText(ctx, `NIGHT ${world.day} - ${Math.round(getNightProgress(world) * 100)}% THROUGH`, width / 2, 80, {
+    color: c.gameOverDim,
+    align: 'center',
+  });
+
+  drawMenu(
+    ctx,
+    PAUSE_MENU.map((label) => ({ label })),
+    PAUSE_MENU_TOP_Y,
+    world.menuIndex,
+  );
+
+  drawText(ctx, 'ABANDONING LOSES TONIGHT\'S PAY', width / 2, 172, {
+    color: c.cashShort,
+    align: 'center',
+  });
+  drawText(ctx, 'ESC TO RESUME', width / 2, 190, {
+    color: c.gameOverHint,
+    align: 'center',
+  });
+}
 
 function drawTitleScreen(ctx, world) {
   const { width } = CONFIG.screen;

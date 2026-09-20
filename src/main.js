@@ -22,6 +22,8 @@ import {
   getShopRowBox,
   TITLE_MENU,
   TITLE_MENU_TOP_Y,
+  PAUSE_MENU,
+  PAUSE_MENU_TOP_Y,
   OPTIONS_MENU_TOP_Y,
   getOptionsMenuItems,
 } from './render.js';
@@ -120,6 +122,9 @@ function update(deltaSeconds) {
     case GAME_STATE.TITLE:
       updateTitle();
       return;
+    case GAME_STATE.PAUSED:
+      updatePaused();
+      return;
     case GAME_STATE.INSTRUCTIONS:
       updateInstructions();
       return;
@@ -175,6 +180,41 @@ function runMenu(rowCount, topY, onNudge) {
   return result;
 }
 
+function pauseShift() {
+  world.state = GAME_STATE.PAUSED;
+  world.menuIndex = 0;
+  clearPendingPress();
+}
+
+// Nothing in the world updates while paused, so the shift is exactly where
+// you left it.
+function updatePaused() {
+  const { chosen, wentBack } = runMenu(PAUSE_MENU.length, PAUSE_MENU_TOP_Y);
+
+  if (wentBack) {
+    resumeShift();
+    return;
+  }
+
+  if (chosen === 0) {
+    resumeShift();
+  } else if (chosen === 1) {
+    world.optionsCameFrom = GAME_STATE.PAUSED;
+    goToMenu(GAME_STATE.OPTIONS);
+  } else if (chosen === 2) {
+    // Walking out mid-shift earns nothing — no payslip, no cash, career over.
+    profile = createProfile();
+    world = createWorld(profile);
+    world.state = GAME_STATE.TITLE;
+    clearPendingPress();
+  }
+}
+
+function resumeShift() {
+  world.state = GAME_STATE.PLAYING;
+  clearPendingPress();
+}
+
 function goToMenu(state) {
   world.state = state;
   world.menuIndex = 0;
@@ -190,6 +230,7 @@ function updateTitle() {
   } else if (chosen === 1) {
     goToMenu(GAME_STATE.INSTRUCTIONS);
   } else {
+    world.optionsCameFrom = GAME_STATE.TITLE;
     goToMenu(GAME_STATE.OPTIONS);
   }
 }
@@ -214,7 +255,7 @@ function updateOptions() {
   );
 
   if (wentBack) {
-    goToMenu(GAME_STATE.TITLE);
+    leaveOptions();
     return;
   }
 
@@ -222,11 +263,25 @@ function updateOptions() {
   if (chosen < 0) return;
 
   if (chosen === OPTION_ROW_BACK) {
-    goToMenu(GAME_STATE.TITLE);
+    leaveOptions();
     return;
   }
 
   changeOption(chosen, 1);
+}
+
+// Back to whichever screen opened the options — the title, or the shift you
+// paused. Without this, tweaking a setting mid-shift would dump you out of
+// your run.
+function leaveOptions() {
+  if (world.optionsCameFrom === GAME_STATE.PAUSED) {
+    world.state = GAME_STATE.PAUSED;
+    world.menuIndex = 0;
+    clearPendingPress();
+    return;
+  }
+
+  goToMenu(GAME_STATE.TITLE);
 }
 
 function changeOption(rowIndex, direction) {
@@ -238,6 +293,13 @@ function changeOption(rowIndex, direction) {
 }
 
 function updatePlaying(deltaSeconds) {
+  // ESC pauses. Checked before anything else moves, so the frame you pause on
+  // is the frame you come back to.
+  if (consumeMenuActions().includes('back')) {
+    pauseShift();
+    return;
+  }
+
   updateNight(world, deltaSeconds);
 
   updateGuard(world.guard, world, deltaSeconds);

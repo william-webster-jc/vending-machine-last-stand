@@ -26,8 +26,22 @@ export const SCALPER_STATE = {
 // SPAWNING
 // -----------------------------------------------------------------------------
 
+// How much health a scalper has on a given night.
+//
+// Expressed in BULLETS rather than raw health, and measured against the
+// STARTING pistol damage — not your upgraded damage. That's deliberate: it
+// means "3 bullets on night one" stays true as a design statement, and buying
+// HEAVIER ROUNDS genuinely claws bullets back off the count instead of being
+// cancelled out by scalpers scaling with you.
+export function getScalperHealth(day) {
+  const cfg = CONFIG.scalper;
+  const bullets = cfg.bulletsToKillOnNightOne + (day - 1) * cfg.extraBulletsPerNight;
+
+  return bullets * CONFIG.bullet.damage;
+}
+
 export function spawnScalper(world, speedMultiplier = 1) {
-  const { width, height, speedMin, speedMax, spawnMargin, maxHealth } = CONFIG.scalper;
+  const { width, height, speedMin, speedMax, spawnMargin } = CONFIG.scalper;
   const { walkTopY, walkBottomY } = CONFIG.world;
 
   // Each one picks its own pace from the range, so a group arrives as a ragged
@@ -40,7 +54,8 @@ export function spawnScalper(world, speedMultiplier = 1) {
     width,
     height,
     speed: ownSpeed * speedMultiplier,
-    health: maxHealth,
+    health: getScalperHealth(world.day),
+    maxHealth: getScalperHealth(world.day),
     state: SCALPER_STATE.APPROACHING,
 
     // Used only for the walk animation — counts up as they move.

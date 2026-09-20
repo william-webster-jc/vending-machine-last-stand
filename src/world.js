@@ -19,6 +19,7 @@ export const GAME_STATE = {
   INSTRUCTIONS: 'instructions',
   OPTIONS: 'options',
   PLAYING: 'playing',
+  PAUSED: 'paused',
   GAME_OVER: 'game-over',
   NIGHT_SURVIVED: 'night-survived',
   SHOP: 'shop',
@@ -91,5 +92,10 @@ export function createWorld(profile) {
 
     // Which menu row is highlighted, on whichever menu is showing.
     menuIndex: 0,
+
+    // Where ESC should send you back to when you leave the options screen.
+    // Options can be opened from the title OR from a paused shift, and it
+    // has to return to whichever one you came from.
+    optionsCameFrom: GAME_STATE.TITLE,
   };
 }
