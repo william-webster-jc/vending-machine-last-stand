@@ -272,20 +272,33 @@ export const CONFIG = {
     healthBarWarning: '#e8c34a',
     healthBarCritical: '#e05454',
 
-    // Title and menus
-    titleVeil: 'rgba(10, 7, 18, 0.9)',
-    titleMain: '#ffd479',
-    titleSub: '#e0547a',
-    titleRule: '#4d3f6b',
-    menuItem: '#c9c2da',
-    menuItemSelected: '#ffe27a',
-    menuPointer: '#7ae0b0',
+    // Title and menus — bright fills over a heavy black keyline, the way a
+    // Scott Pilgrim menu is built.
+    titleVeil: 'rgba(10, 7, 20, 0.92)',
+    inkOutline: '#0d0a14',
+    titleMain: '#3fb4f0',
+    titleSub: '#ec3b46',
+    titleRule: '#2a2340',
+
+    menuItem: '#3fb4f0',
+    menuItemSelected: '#ffffff',
+
+    // The selected row sits on a solid bar rather than just changing colour.
+    // The bar is the bright one: against a dark screen a black bar vanishes,
+    // so the colour has to come from the highlight itself.
+    menuHighlightBar: '#f0408a',
+    menuHighlightEdge: '#8a1a4c',
+    menuHighlightAccent: '#ffe27a',
+
+    // Menu screens get their own patterned backdrop rather than a dimmed
+    // view of the mall, so a menu reads as a menu.
+    menuBackdrop: '#16224a',
+    menuBackdropAlt: '#1b2a58',
 
     // Shop
-    shopVeil: 'rgba(14, 10, 24, 0.93)',
-    shopPanel: '#241c38',
-    shopPanelEdge: '#3d3158',
-    shopRowHighlight: '#33284f',
+    shopVeil: 'rgba(14, 10, 24, 0.94)',
+    shopPanel: '#1b2a52',
+    shopPanelEdge: '#e8ecf5',
     shopName: '#f4f0e4',
     shopBlurb: '#9a93ad',
     cash: '#7ae06a',

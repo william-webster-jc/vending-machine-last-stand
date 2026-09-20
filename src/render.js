@@ -285,15 +285,17 @@ function drawNightBanner(ctx, world) {
   ctx.save();
   ctx.globalAlpha = fade;
 
-  drawTextWithShadow(ctx, `NIGHT ${world.day}`, width / 2, 46, {
+  drawText(ctx, `NIGHT ${world.day}`, width / 2, 46, {
     color: c.waveBanner,
-    shadowColor: c.waveBannerShadow,
+    outlineColor: c.inkOutline,
+    bold: true,
     scale: 3,
     align: 'center',
   });
 
-  drawText(ctx, `${getAssaultSize(world.day)} SCALPERS INCOMING`, width / 2, 72, {
+  drawText(ctx, `${getAssaultSize(world.day)} SCALPERS INCOMING`, width / 2, 74, {
     color: c.gameOverText,
+    outlineColor: c.inkOutline,
     align: 'center',
   });
 
@@ -309,8 +311,10 @@ function drawNightSurvivedScreen(ctx, world) {
   ctx.fillStyle = c.sunriseVeil;
   ctx.fillRect(0, 0, width, height);
 
-  drawText(ctx, 'NIGHT SURVIVED', width / 2, 52, {
+  drawText(ctx, 'NIGHT SURVIVED', width / 2, 50, {
     color: c.sunriseTitle,
+    outlineColor: c.inkOutline,
+    bold: true,
     scale: 2,
     align: 'center',
   });
@@ -345,6 +349,27 @@ function drawNightSurvivedScreen(ctx, world) {
 // TITLE, PAUSE, INSTRUCTIONS AND OPTIONS
 // =============================================================================
 
+// Menu screens get their own backdrop — a checked field, like the reference —
+// rather than a dimmed view of the mall. A menu should read as a menu, not as
+// the game with the lights turned down.
+function drawMenuBackdrop(ctx) {
+  const { width, height } = CONFIG.screen;
+  const c = CONFIG.colors;
+  const tile = 12;
+
+  ctx.fillStyle = c.menuBackdrop;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = c.menuBackdropAlt;
+  for (let y = 0; y < height; y += tile) {
+    for (let x = 0; x < width; x += tile) {
+      if ((x / tile + y / tile) % 2 === 0) {
+        ctx.fillRect(x, y, tile, tile);
+      }
+    }
+  }
+}
+
 // Paused mid-shift. Drawn over the frozen scene rather than replacing it, so
 // you can still see exactly what you're going back to.
 function drawPauseScreen(ctx, world) {
@@ -356,6 +381,8 @@ function drawPauseScreen(ctx, world) {
 
   drawText(ctx, 'PAUSED', width / 2, 48, {
     color: c.titleMain,
+    outlineColor: c.inkOutline,
+    bold: true,
     scale: 3,
     align: 'center',
   });
@@ -386,8 +413,7 @@ function drawTitleScreen(ctx, world) {
   const { width } = CONFIG.screen;
   const c = CONFIG.colors;
 
-  ctx.fillStyle = c.titleVeil;
-  ctx.fillRect(0, 0, width, CONFIG.screen.height);
+  drawMenuBackdrop(ctx);
 
   // ---------------------------------------------------------------------
   // YOUR SPLASH ART GOES HERE.
@@ -396,25 +422,25 @@ function drawTitleScreen(ctx, world) {
   // call filling roughly x 0-384, y 10-110. Everything below stays as it is.
   // Until then, the title is drawn in the game's own pixel font.
   // ---------------------------------------------------------------------
-  drawTextWithShadow(ctx, 'VENDING MACHINE', width / 2, 30, {
+  drawText(ctx, 'VENDING MACHINE', width / 2, 26, {
     color: c.titleMain,
-    shadowColor: '#5a2038',
+    outlineColor: c.inkOutline,
+    bold: true,
     scale: 3,
     align: 'center',
   });
 
-  drawTextWithShadow(ctx, 'LAST STAND', width / 2, 58, {
+  drawText(ctx, 'LAST STAND', width / 2, 54, {
     color: c.titleSub,
-    shadowColor: '#2a1230',
+    outlineColor: c.inkOutline,
+    bold: true,
     scale: 4,
     align: 'center',
   });
 
-  ctx.fillStyle = c.titleRule;
-  ctx.fillRect(70, 100, width - 140, 1);
-
-  drawText(ctx, 'NOBODY TOUCHES THE PACKS', width / 2, 108, {
-    color: c.gameOverDim,
+  drawText(ctx, 'NOBODY TOUCHES THE PACKS', width / 2, 100, {
+    color: c.menuItem,
+    outlineColor: c.inkOutline,
     align: 'center',
   });
 
@@ -453,11 +479,12 @@ function drawInstructionsScreen(ctx) {
   const { width } = CONFIG.screen;
   const c = CONFIG.colors;
 
-  ctx.fillStyle = c.titleVeil;
-  ctx.fillRect(0, 0, width, CONFIG.screen.height);
+  drawMenuBackdrop(ctx);
 
   drawText(ctx, 'INSTRUCTIONS', width / 2, 14, {
     color: c.titleMain,
+    outlineColor: c.inkOutline,
+    bold: true,
     scale: 2,
     align: 'center',
   });
@@ -495,11 +522,12 @@ function drawOptionsScreen(ctx, world) {
   const { width } = CONFIG.screen;
   const c = CONFIG.colors;
 
-  ctx.fillStyle = c.titleVeil;
-  ctx.fillRect(0, 0, width, CONFIG.screen.height);
+  drawMenuBackdrop(ctx);
 
   drawText(ctx, 'OPTIONS', width / 2, 22, {
     color: c.titleMain,
+    outlineColor: c.inkOutline,
+    bold: true,
     scale: 2,
     align: 'center',
   });
@@ -544,7 +572,9 @@ function drawShopScreen(ctx, world) {
   });
 
   drawText(ctx, 'SUPPLY RUN', width / 2, 22, {
-    color: c.shopName,
+    color: c.titleMain,
+    outlineColor: c.inkOutline,
+    bold: true,
     scale: 2,
     align: 'center',
   });
@@ -574,42 +604,54 @@ export function getShopRowBox(index) {
     x: 46,
     y: 58 + index * 24,
     width: CONFIG.screen.width - 92,
-    height: 21,
+    height: 22,
   };
 }
 
 function drawShopRow(ctx, row, index, world) {
   const c = CONFIG.colors;
   const box = getShopRowBox(index);
-  const isHovered = world.hoveredShopRow === index;
+  const isSelected = world.hoveredShopRow === index;
 
+  // Selected rows sit on a bright bar; the rest on the dark panel. Same idea
+  // as the menus — a solid block of colour reads instantly.
   ctx.fillStyle = c.shopPanelEdge;
   ctx.fillRect(box.x - 1, box.y - 1, box.width + 2, box.height + 2);
-  ctx.fillStyle = isHovered && row.affordable ? c.shopRowHighlight : c.shopPanel;
+  ctx.fillStyle = isSelected ? c.menuHighlightBar : c.shopPanel;
   ctx.fillRect(box.x, box.y, box.width, box.height);
 
-  // The number you'd press for this row.
-  drawText(ctx, `${index + 1}`, box.x + 4, box.y + 3, { color: c.gameOverDim });
+  const nameColor = isSelected ? '#ffffff' : row.maxed ? c.shopMaxed : c.shopName;
+  const detailColor = isSelected ? '#ffd8e8' : c.shopBlurb;
 
-  drawText(ctx, row.name, box.x + 13, box.y + 3, {
-    color: row.maxed ? c.shopMaxed : c.shopName,
+  // The number you'd press for this row.
+  drawText(ctx, `${index + 1}`, box.x + 4, box.y + 3, {
+    color: isSelected ? '#ffffff' : c.gameOverDim,
+    outlineColor: c.inkOutline,
   });
 
-  drawText(ctx, row.detail, box.x + 13, box.y + 12, { color: c.shopBlurb });
+  drawText(ctx, row.name, box.x + 13, box.y + 3, {
+    color: nameColor,
+    outlineColor: c.inkOutline,
+    bold: true,
+  });
+
+  drawText(ctx, row.detail, box.x + 13, box.y + 13, { color: detailColor });
 
   // Price on the right, red when you can't afford it.
   const priceX = box.x + box.width - 5;
-  if (row.maxed) {
-    drawText(ctx, row.maxedLabel, priceX, box.y + 7, {
-      color: c.shopMaxed,
-      align: 'right',
-    });
-  } else {
-    drawText(ctx, `${row.cost}`, priceX, box.y + 7, {
-      color: row.affordable ? c.cash : c.cashShort,
-      align: 'right',
-    });
-  }
+  const priceText = row.maxed ? row.maxedLabel : `${row.cost}`;
+  const priceColor = row.maxed
+    ? c.shopMaxed
+    : row.affordable
+      ? c.cash
+      : c.cashShort;
+
+  drawText(ctx, priceText, priceX, box.y + 7, {
+    color: isSelected && !row.maxed ? '#ffffff' : priceColor,
+    outlineColor: c.inkOutline,
+    bold: true,
+    align: 'right',
+  });
 }
 
 // The screen you earn by losing.
@@ -625,8 +667,10 @@ function drawGameOverScreen(ctx, world) {
   ctx.fillStyle = c.gameOverVeil;
   ctx.fillRect(0, 0, width, height);
 
-  drawText(ctx, 'GAME OVER', width / 2, 52, {
+  drawText(ctx, 'GAME OVER', width / 2, 50, {
     color: c.gameOverTitle,
+    outlineColor: c.inkOutline,
+    bold: true,
     scale: 2,
     align: 'center',
   });

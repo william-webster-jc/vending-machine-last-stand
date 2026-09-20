@@ -42,6 +42,10 @@ export function findMenuRowAt(point, rowCount, topY) {
 
 // Each item is { label, value }. `value` is optional and drawn on the right,
 // which is what turns the same menu into a settings list.
+//
+// The selected row gets a solid bar running right across the screen with a
+// bright accent edge, rather than merely changing colour. That bar is what
+// makes a selection unmissable at a glance on a busy background.
 export function drawMenu(ctx, items, topY, selectedIndex) {
   const c = CONFIG.colors;
 
@@ -50,16 +54,23 @@ export function drawMenu(ctx, items, topY, selectedIndex) {
     const isSelected = index === selectedIndex;
 
     if (isSelected) {
-      drawText(ctx, '>', box.x - 10, box.y + 3, { color: c.menuPointer });
+      ctx.fillStyle = c.menuHighlightEdge;
+      ctx.fillRect(0, box.y - 3, CONFIG.screen.width, box.height + 4);
+      ctx.fillStyle = c.menuHighlightBar;
+      ctx.fillRect(0, box.y - 2, CONFIG.screen.width, box.height + 2);
     }
 
-    drawText(ctx, item.label, box.x, box.y + 3, {
+    drawText(ctx, item.label, box.x, box.y + 2, {
       color: isSelected ? c.menuItemSelected : c.menuItem,
+      outlineColor: c.inkOutline,
+      bold: true,
     });
 
-    if (item.value !== undefined) {
-      drawText(ctx, item.value, box.x + box.width, box.y + 3, {
-        color: isSelected ? c.menuItemSelected : c.menuItem,
+    if (item.value !== undefined && item.value !== '') {
+      drawText(ctx, item.value, box.x + box.width, box.y + 2, {
+        color: isSelected ? c.menuHighlightAccent : c.menuItem,
+        outlineColor: c.inkOutline,
+        bold: true,
         align: 'right',
       });
     }
