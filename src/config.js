@@ -82,6 +82,46 @@ export const CONFIG = {
     // How much breathing room to leave between you and the machine or the
     // barricade, so you stop just short instead of clipping into them.
     clearance: 5,
+
+    // How high up the body the shooting arm comes out of, measured up from
+    // the feet. Bigger = the gun sits higher on his chest.
+    shoulderHeight: 15,
+
+    // How far the arm reaches out from the shoulder, in pixels.
+    armLength: 6,
+  },
+
+  // ---------------------------------------------------------------------------
+  // THE WEAPON — the pistol you start the night with. More guns arrive in M15.
+  // ---------------------------------------------------------------------------
+  weapon: {
+    // Seconds between shots. Smaller = faster gun. 0.16 is about 6 shots a
+    // second, which is fast enough to feel good and slow enough to aim.
+    fireIntervalSeconds: 0.16,
+
+    // Hold the mouse button to keep firing. Set to false and every shot needs
+    // its own click.
+    autoFire: true,
+
+    // How far past the hand the barrel sticks out — bullets are born here, so
+    // they appear to leave the gun rather than the guard's chest.
+    barrelLength: 5,
+  },
+
+  // ---------------------------------------------------------------------------
+  // BULLETS
+  // ---------------------------------------------------------------------------
+  bullet: {
+    // Pixels per second. The screen is only 384 wide, so 420 crosses it in
+    // under a second — fast, but you can still see it travel.
+    speed: 420,
+
+    width: 4,
+    height: 2,
+
+    // How far off-screen a bullet gets before we throw it away. A little
+    // margin stops them visibly blinking out right at the edge.
+    despawnMargin: 12,
   },
 
   // ---------------------------------------------------------------------------
@@ -129,6 +169,11 @@ export const CONFIG = {
     guardBoot: '#2b2b35',
     gunMetal: '#4d4d59',
 
+    // Bullets and crosshair
+    bulletCore: '#fff3a8',
+    bulletEdge: '#f2913c',
+    crosshair: '#f4f0d8',
+
     // Debug readout
     debugText: '#9dff7a',
     debugLabel: '#7a7a96',
@@ -150,9 +195,13 @@ export const CONFIG = {
   debug: {
     showDebug: true,
     fpsSampleSeconds: 0.5,
-    buildLabel: 'M2 - WALK THE BEAT',
+    buildLabel: 'M3 - DRAW YOUR WEAPON',
 
     // Shows your exact position on screen. Handy while testing movement.
     showPosition: true,
+
+    // Shows how many bullets are alive right now. If this number climbs and
+    // never comes back down, bullets aren't being cleaned up properly.
+    showBulletCount: true,
   },
 };

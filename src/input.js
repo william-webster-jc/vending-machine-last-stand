@@ -9,6 +9,8 @@
 // the rest of the game ask questions about it.
 // =============================================================================
 
+import { CONFIG } from './config.js';
+
 // Each action lists every key that triggers it, so WASD and the arrow keys both
 // work without the rest of the game needing to care which one you used.
 const KEY_BINDINGS = {
@@ -65,4 +67,68 @@ export function getMoveDirection() {
   if (isHeld('moveDown')) y += 1;
 
   return { x, y };
+}
+
+// =============================================================================
+// MOUSE
+//
+// The tricky part: the browser tells us where the mouse is in SCREEN pixels,
+// but the game thinks in its own tiny 384x216 pixels. Since the canvas is blown
+// up to fill your window, those two numbers are wildly different — so every
+// mouse position has to be converted before the game can use it.
+// =============================================================================
+
+const mouse = {
+  // Where the mouse is, in the game's own coordinates.
+  x: CONFIG.screen.width / 2,
+  y: CONFIG.screen.height / 2,
+  isDown: false,
+};
+
+export function attachMouseTo(canvas) {
+  canvas.addEventListener('mousemove', (event) => {
+    updateMousePosition(canvas, event);
+  });
+
+  canvas.addEventListener('mousedown', (event) => {
+    updateMousePosition(canvas, event);
+    mouse.isDown = true;
+    event.preventDefault();
+  });
+
+  // Listening for the release on the whole window, not just the canvas, means
+  // letting go of the button outside the game still counts as letting go.
+  // Otherwise the gun would keep firing forever.
+  window.addEventListener('mouseup', () => {
+    mouse.isDown = false;
+  });
+
+  window.addEventListener('blur', () => {
+    mouse.isDown = false;
+  });
+
+  // Stop the right-click menu appearing over the game.
+  canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+}
+
+function updateMousePosition(canvas, event) {
+  // How big the canvas currently is on your actual screen.
+  const bounds = canvas.getBoundingClientRect();
+
+  // Where the mouse is inside that box, as a fraction from 0 to 1...
+  const fractionAcross = (event.clientX - bounds.left) / bounds.width;
+  const fractionDown = (event.clientY - bounds.top) / bounds.height;
+
+  // ...then scaled into the game's own coordinates. Working in fractions like
+  // this means it stays correct at any window size or zoom level, for free.
+  mouse.x = fractionAcross * CONFIG.screen.width;
+  mouse.y = fractionDown * CONFIG.screen.height;
+}
+
+export function getMousePosition() {
+  return mouse;
+}
+
+export function isFireHeld() {
+  return mouse.isDown;
 }

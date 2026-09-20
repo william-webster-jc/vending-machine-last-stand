@@ -12,6 +12,8 @@
 import { CONFIG } from './config.js';
 import { drawScene } from './render.js';
 import { updateGuard } from './entities/guard.js';
+import { updateBullets } from './entities/bullet.js';
+import { attachMouseTo } from './input.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -30,8 +32,24 @@ const world = {
   guard: {
     x: CONFIG.guard.startX,
     y: CONFIG.guard.startY,
+
+    // Which way he's turned (1 right, -1 left) and the angle he's aiming along.
+    facing: 1,
+    aimAngle: 0,
+
+    // Counts down to zero between shots. See updateFiring in guard.js.
+    fireCooldown: 0,
+    hasFiredThisClick: false,
   },
+
+  // Every bullet currently in the air. Starts empty, fills as you shoot,
+  // empties again as they fly off the screen.
+  bullets: [],
 };
+
+// The mouse needs to know about the canvas so it can convert screen positions
+// into the game's own coordinates.
+attachMouseTo(canvas);
 
 // -----------------------------------------------------------------------------
 // SCALING
@@ -75,7 +93,8 @@ function measureFrameRate(deltaSeconds) {
 // Every new thing we build gets one line here.
 // -----------------------------------------------------------------------------
 function update(deltaSeconds) {
-  updateGuard(world.guard, deltaSeconds);
+  updateGuard(world.guard, world, deltaSeconds);
+  updateBullets(world, deltaSeconds);
 
   measureFrameRate(deltaSeconds);
 }

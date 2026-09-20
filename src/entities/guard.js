@@ -1,21 +1,96 @@
 // =============================================================================
 // guard.js — you, the mall security guard.
 //
-// Drawn in side profile facing right, toward the barricade, because that's
-// where the threat is. Shooting arrives in M3.
+// He walks (M2) and now he aims and shoots (M3). He faces wherever your mouse
+// is, so you can walk one way while covering another.
 //
 // IMPORTANT: guard.y is his FEET, not his head. Everything that touches the
 // floor is measured from the feet, which makes depth sorting simple later.
 // =============================================================================
 
 import { CONFIG } from '../config.js';
-import { getMoveDirection } from '../input.js';
+import { getMoveDirection, getMousePosition, isFireHeld } from '../input.js';
+import { spawnBullet } from './bullet.js';
+
+export function updateGuard(guard, world, deltaSeconds) {
+  updateAim(guard);
+  updateMovement(guard, deltaSeconds);
+  updateFiring(guard, world, deltaSeconds);
+}
+
+// -----------------------------------------------------------------------------
+// AIMING
+// -----------------------------------------------------------------------------
+
+// Work out the angle from the guard's shoulder to the mouse, and which way
+// he's turned. Stored on the guard so the drawing code and the firing code
+// both read the same answer.
+function updateAim(guard) {
+  const mouse = getMousePosition();
+  const shoulder = getShoulderPosition(guard);
+
+  // atan2 answers the question "what angle points from here to there?".
+  // 0 is straight right, and it increases clockwise (because on a screen,
+  // y counts downward rather than upward).
+  guard.aimAngle = Math.atan2(mouse.y - shoulder.y, mouse.x - shoulder.x);
+
+  // 1 means turned right, -1 means turned left.
+  guard.facing = mouse.x >= guard.x ? 1 : -1;
+}
+
+function getShoulderPosition(guard) {
+  return {
+    x: guard.x,
+    y: guard.y - CONFIG.guard.shoulderHeight,
+  };
+}
+
+// Where the tip of the barrel is. Bullets are born here so they appear to
+// leave the gun rather than sprouting out of his chest.
+function getMuzzlePosition(guard) {
+  const shoulder = getShoulderPosition(guard);
+  const reach = CONFIG.guard.armLength + CONFIG.weapon.barrelLength;
+
+  return {
+    x: shoulder.x + Math.cos(guard.aimAngle) * reach,
+    y: shoulder.y + Math.sin(guard.aimAngle) * reach,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// FIRING
+// -----------------------------------------------------------------------------
+
+// A cooldown is just a small countdown. Every shot sets it, every frame ticks
+// it down, and you can't fire again until it reaches zero. That's what stops a
+// held mouse button spawning a bullet on every single frame — which at 120fps
+// would be 120 bullets a second.
+function updateFiring(guard, world, deltaSeconds) {
+  guard.fireCooldown -= deltaSeconds;
+
+  if (!isFireHeld()) {
+    guard.hasFiredThisClick = false;
+    return;
+  }
+
+  // With autoFire off, one click means exactly one bullet no matter how long
+  // you hold the button down.
+  if (!CONFIG.weapon.autoFire && guard.hasFiredThisClick) return;
+
+  if (guard.fireCooldown > 0) return;
+
+  const muzzle = getMuzzlePosition(guard);
+  spawnBullet(world, muzzle.x, muzzle.y, guard.aimAngle);
+
+  guard.fireCooldown = CONFIG.weapon.fireIntervalSeconds;
+  guard.hasFiredThisClick = true;
+}
 
 // -----------------------------------------------------------------------------
 // MOVEMENT
 // -----------------------------------------------------------------------------
 
-export function updateGuard(guard, deltaSeconds) {
+function updateMovement(guard, deltaSeconds) {
   const { speed, verticalSpeedFactor } = CONFIG.guard;
   const direction = getMoveDirection();
 
@@ -116,13 +191,19 @@ export function drawGuard(ctx, guard) {
 
   const left = Math.round(guard.x - width / 2);
   const top = Math.round(guard.y - height);
+  const facingRight = guard.facing >= 0;
 
   drawShadow(ctx, guard);
 
   // Boots
   ctx.fillStyle = c.guardBoot;
-  ctx.fillRect(left + 2, top + 23, 4, 3);
-  ctx.fillRect(left + 7, top + 23, 5, 3);
+  if (facingRight) {
+    ctx.fillRect(left + 2, top + 23, 4, 3);
+    ctx.fillRect(left + 7, top + 23, 5, 3);
+  } else {
+    ctx.fillRect(left + 1, top + 23, 5, 3);
+    ctx.fillRect(left + 7, top + 23, 4, 3);
+  }
 
   // Legs
   ctx.fillStyle = c.guardUniformDark;
@@ -137,38 +218,65 @@ export function drawGuard(ctx, guard) {
   ctx.fillStyle = c.guardCap;
   ctx.fillRect(left + 2, top + 17, 9, 2);
 
-  // Badge on the chest
+  // Badge on the chest, on whichever side he's turned toward
   ctx.fillStyle = c.machineTrim;
-  ctx.fillRect(left + 4, top + 11, 2, 2);
+  ctx.fillRect(facingRight ? left + 4 : left + 7, top + 11, 2, 2);
 
   // Head
   ctx.fillStyle = c.guardSkin;
   ctx.fillRect(left + 4, top + 3, 6, 6);
 
-  // Cap, with a brim pointing right — this is what tells you which way he faces.
+  // Cap. The brim points the way he's facing — at this size it's the clearest
+  // signal of which direction he's turned.
   ctx.fillStyle = c.guardCap;
   ctx.fillRect(left + 3, top, 7, 3);
-  ctx.fillRect(left + 10, top + 2, 3, 1);
+  ctx.fillRect(facingRight ? left + 10 : left, top + 2, 3, 1);
 
-  drawArmAndGun(ctx, left, top);
+  drawArmAndGun(ctx, guard);
 }
 
-// The right arm held out with the pistol, aimed toward the barricade.
-function drawArmAndGun(ctx, left, top) {
+// The shooting arm, drawn fresh every frame pointing at your mouse.
+//
+// Rather than rotating a picture of an arm — fiddly and blurry at this size —
+// we just work out where the hand ends up and draw a short line of chunky
+// pixels out to it. At 13 pixels tall that reads perfectly.
+function drawArmAndGun(ctx, guard) {
   const c = CONFIG.colors;
+  const { armLength } = CONFIG.guard;
+  const { barrelLength } = CONFIG.weapon;
 
-  // Arm
-  ctx.fillStyle = c.guardUniform;
-  ctx.fillRect(left + 10, top + 11, 4, 3);
+  const shoulder = getShoulderPosition(guard);
+  const aimX = Math.cos(guard.aimAngle);
+  const aimY = Math.sin(guard.aimAngle);
 
-  // Hand
+  const hand = {
+    x: shoulder.x + aimX * armLength,
+    y: shoulder.y + aimY * armLength,
+  };
+  const muzzle = {
+    x: shoulder.x + aimX * (armLength + barrelLength),
+    y: shoulder.y + aimY * (armLength + barrelLength),
+  };
+
+  drawPixelLine(ctx, shoulder, hand, c.guardUniform);
+  drawPixelLine(ctx, hand, muzzle, c.gunMetal);
+
   ctx.fillStyle = c.guardSkin;
-  ctx.fillRect(left + 13, top + 11, 2, 3);
+  ctx.fillRect(Math.round(hand.x) - 1, Math.round(hand.y) - 1, 2, 2);
+}
 
-  // Pistol
-  ctx.fillStyle = c.gunMetal;
-  ctx.fillRect(left + 15, top + 11, 4, 2);
-  ctx.fillRect(left + 15, top + 13, 2, 2);
+// Draws a chunky 2x2 line between two points by stepping along it.
+function drawPixelLine(ctx, from, to, color) {
+  const distance = Math.hypot(to.x - from.x, to.y - from.y);
+  const steps = Math.max(1, Math.ceil(distance));
+
+  ctx.fillStyle = color;
+  for (let step = 0; step <= steps; step++) {
+    const progress = step / steps;
+    const x = Math.round(from.x + (to.x - from.x) * progress);
+    const y = Math.round(from.y + (to.y - from.y) * progress);
+    ctx.fillRect(x - 1, y - 1, 2, 2);
+  }
 }
 
 // A soft oval-ish shadow under the feet, so he's planted on the floor.

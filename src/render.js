@@ -10,6 +10,8 @@ import { CONFIG } from './config.js';
 import { drawMachine } from './entities/machine.js';
 import { drawBarricade } from './entities/barricade.js';
 import { drawGuard } from './entities/guard.js';
+import { drawBullets } from './entities/bullet.js';
+import { getMousePosition } from './input.js';
 
 export function drawScene(ctx, world, fps) {
   drawBackWall(ctx);
@@ -18,6 +20,11 @@ export function drawScene(ctx, world, fps) {
   drawMachine(ctx);
   drawBarricade(ctx);
   drawGuard(ctx, world.guard);
+
+  // Bullets go on top of the barricade, because you're shooting OVER your own
+  // wall at whatever is on the far side of it.
+  drawBullets(ctx, world);
+  drawCrosshair(ctx);
 
   if (CONFIG.debug.showDebug) {
     drawDebugReadout(ctx, world, fps);
@@ -122,6 +129,23 @@ function drawFloor(ctx) {
   ctx.fillRect(0, horizonY, width, 3);
 }
 
+// An 8-bit crosshair drawn where your mouse is. The real cursor is hidden by
+// CSS, so this is the only pointer you see over the game.
+function drawCrosshair(ctx) {
+  const mouse = getMousePosition();
+  const x = Math.round(mouse.x);
+  const y = Math.round(mouse.y);
+
+  ctx.fillStyle = CONFIG.colors.crosshair;
+
+  // Four short ticks with a gap in the middle, so the thing you're aiming at
+  // stays visible instead of being covered by your own crosshair.
+  ctx.fillRect(x - 5, y, 3, 1);
+  ctx.fillRect(x + 3, y, 3, 1);
+  ctx.fillRect(x, y - 5, 1, 3);
+  ctx.fillRect(x, y + 3, 1, 3);
+}
+
 // Small corner readouts. These are for you, not the player — they get switched
 // off with CONFIG.debug.showDebug.
 function drawDebugReadout(ctx, world, fps) {
@@ -138,6 +162,10 @@ function drawDebugReadout(ctx, world, fps) {
     const x = Math.round(world.guard.x);
     const y = Math.round(world.guard.y);
     ctx.fillText(`x ${x}  y ${y}`, 4, 14);
+  }
+
+  if (CONFIG.debug.showBulletCount) {
+    ctx.fillText(`bullets ${world.bullets.length}`, 4, 24);
   }
 
   ctx.textBaseline = 'bottom';
