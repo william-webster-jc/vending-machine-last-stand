@@ -17,10 +17,17 @@ import { drawHealthBar } from '../pixel.js';
 // same every frame instead of jittering.
 const PLANK_OVERHANG = [0, 3, 1, 0, 2, 0, 3, 1, 2, 0, 1, 3];
 
-export function createBarricade() {
+export function createBarricade(maxHealth, carriedHealth = null) {
+  // null means "arrive at full strength" — a fresh career, or a wall you paid
+  // to have repaired during the day.
+  const health = carriedHealth === null
+    ? maxHealth
+    : Math.min(carriedHealth, maxHealth);
+
   return {
-    health: CONFIG.barricade.maxHealth,
-    isBroken: false,
+    maxHealth,
+    health,
+    isBroken: health <= 0,
   };
 }
 
@@ -72,7 +79,7 @@ function drawPlanks(ctx, barricade, x, width, topY, bottomY, plankHeight) {
 
   const plankCount = Math.ceil((bottomY - topY) / plankHeight);
   const middlePlank = (plankCount - 1) / 2;
-  const healthFraction = barricade.health / CONFIG.barricade.maxHealth;
+  const healthFraction = barricade.health / barricade.maxHealth;
   const holeRadius = (1 - healthFraction) * (plankCount / 2);
 
   let plankIndex = 0;
@@ -177,7 +184,7 @@ function drawRubble(ctx) {
 
 function drawBarricadeHealthBar(ctx, barricade) {
   const cfg = CONFIG.barricade;
-  const fraction = barricade.health / cfg.maxHealth;
+  const fraction = barricade.health / barricade.maxHealth;
 
   const barX = Math.round(cfg.x + cfg.width / 2 - cfg.healthBarWidth / 2);
   const barY = cfg.topY - cfg.healthBarOffsetY;

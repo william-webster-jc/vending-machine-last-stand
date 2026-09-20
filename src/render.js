@@ -14,6 +14,7 @@ import { drawScalper } from './entities/scalper-art.js';
 import { drawBullets } from './entities/bullet.js';
 import { getMousePosition } from './input.js';
 import { GAME_STATE } from './world.js';
+import { getShopRows } from './shop.js';
 import { mixColors } from './pixel.js';
 import {
   getNightProgress,
@@ -45,7 +46,10 @@ export function drawScene(ctx, world, fps) {
     drawWaveBanner(ctx, world);
   }
 
-  if (world.state === GAME_STATE.NIGHT_SURVIVED) {
+  if (world.state === GAME_STATE.SHOP) {
+    drawShopScreen(ctx, world);
+    drawCrosshair(ctx);
+  } else if (world.state === GAME_STATE.NIGHT_SURVIVED) {
     drawNightSurvivedScreen(ctx, world);
   } else if (world.state === GAME_STATE.GAME_OVER) {
     drawGameOverScreen(ctx, world);
@@ -53,7 +57,9 @@ export function drawScene(ctx, world, fps) {
     drawCrosshair(ctx);
   }
 
-  if (CONFIG.debug.showDebug) {
+  // The corner readouts would sit on top of the menu screens, so they're only
+  // drawn while you're actually playing.
+  if (CONFIG.debug.showDebug && world.state === GAME_STATE.PLAYING) {
     drawDebugReadout(ctx, world, fps);
   }
 }
@@ -295,20 +301,106 @@ function drawNightSurvivedScreen(ctx, world) {
   ctx.fillStyle = c.gameOverText;
   ctx.fillText(`THE SUN IS UP. SHIFT ${world.day} IS OVER.`, width / 2, 84);
 
-  drawStatLines(ctx, [
-    ['SCALPERS STOPPED', `${stats.scalpersStopped}`],
-    ['PACKS SAVED', `${stats.packsSaved} / ${CONFIG.machine.packCount}`],
-    ['STILL ON THE FLOOR', `${stats.scalpersOnFloor}`],
-    ['BARRICADE', stats.barricadeHeld ? 'HELD' : 'BREACHED'],
-  ]);
+  // The payslip, itemised, so you can see exactly what playing well earned.
+  const payLines = world.payslip.lines.map(([label, amount]) => [label, `${amount}`]);
+  drawStatLines(ctx, payLines);
+
+  const totalY = 106 + payLines.length * 12 + 6;
+  ctx.fillStyle = c.cash;
+  ctx.fillText(`TONIGHT'S PAY   ${world.payslip.total}`, width / 2, totalY);
 
   if (world.gameOverCountdown <= 0) {
     ctx.fillStyle = c.gameOverHint;
-    ctx.fillText(`PRESS ANY KEY TO START NIGHT ${world.day + 1}`, width / 2, 172);
+    ctx.fillText('PRESS ANY KEY TO COLLECT', width / 2, 176);
   }
 
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
+}
+
+// The shop. Spend the night's pay before clocking on again.
+//
+// Every row is worked out by shop.js, not here — so what the screen shows and
+// what a purchase actually does can never drift apart.
+function drawShopScreen(ctx, world) {
+  const { width } = CONFIG.screen;
+  const c = CONFIG.colors;
+  const profile = world.profile;
+
+  ctx.fillStyle = c.shopVeil;
+  ctx.fillRect(0, 0, width, CONFIG.screen.height);
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.font = '8px monospace';
+  ctx.fillStyle = c.gameOverDim;
+  ctx.fillText(`DAY ${profile.day} - THE MALL IS OPEN`, width / 2, 14);
+
+  ctx.font = '16px monospace';
+  ctx.fillStyle = c.shopName;
+  ctx.fillText('SUPPLY RUN', width / 2, 30);
+
+  ctx.font = '8px monospace';
+  ctx.fillStyle = c.cash;
+  ctx.fillText(`CASH  ${profile.cash}`, width / 2, 46);
+
+  const rows = getShopRows(profile);
+  rows.forEach((row, index) => drawShopRow(ctx, row, index, world));
+
+  ctx.fillStyle = c.gameOverHint;
+  ctx.fillText('CLICK OR PRESS 1-5 TO BUY', width / 2, 188);
+  ctx.fillStyle = c.gameOverText;
+  ctx.fillText(`ENTER - START NIGHT ${profile.day}`, width / 2, 200);
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+}
+
+// Where each shop row sits. The drawing code and the click handling both call
+// this, so a row can never be drawn somewhere you can't click it.
+export function getShopRowBox(index) {
+  return {
+    x: 46,
+    y: 58 + index * 24,
+    width: CONFIG.screen.width - 92,
+    height: 21,
+  };
+}
+
+function drawShopRow(ctx, row, index, world) {
+  const c = CONFIG.colors;
+  const box = getShopRowBox(index);
+  const isHovered = world.hoveredShopRow === index;
+
+  ctx.fillStyle = c.shopPanelEdge;
+  ctx.fillRect(box.x - 1, box.y - 1, box.width + 2, box.height + 2);
+  ctx.fillStyle = isHovered && row.affordable ? c.shopRowHighlight : c.shopPanel;
+  ctx.fillRect(box.x, box.y, box.width, box.height);
+
+  ctx.textAlign = 'left';
+
+  // The number you'd press for this row.
+  ctx.fillStyle = c.gameOverDim;
+  ctx.fillText(`${index + 1}`, box.x + 4, box.y + 7);
+
+  ctx.fillStyle = row.maxed ? c.shopMaxed : c.shopName;
+  ctx.fillText(row.name, box.x + 14, box.y + 7);
+
+  ctx.fillStyle = c.shopBlurb;
+  ctx.fillText(row.detail, box.x + 14, box.y + 16);
+
+  // Price on the right, red when you can't afford it.
+  ctx.textAlign = 'right';
+  if (row.maxed) {
+    ctx.fillStyle = c.shopMaxed;
+    ctx.fillText(row.maxedLabel, box.x + box.width - 5, box.y + 11);
+  } else {
+    ctx.fillStyle = row.affordable ? c.cash : c.cashShort;
+    ctx.fillText(`${row.cost}`, box.x + box.width - 5, box.y + 11);
+  }
+
+  ctx.textAlign = 'center';
 }
 
 // The screen you earn by losing.
@@ -415,7 +507,7 @@ function drawDebugReadout(ctx, world, fps) {
     ctx.fillText(`stopped ${world.scalpersStopped}`, 4, 44);
     ctx.fillText(`packs ${world.machine.packsRemaining}`, 4, 54);
     ctx.fillText(
-      `day ${world.day}  wave ${world.waveIndex + 1}  ${Math.round(getNightProgress(world) * 100)}%`,
+      `day ${world.day}  wave ${world.waveIndex + 1}  ${Math.round(getNightProgress(world) * 100)}%  $${world.profile.cash}`,
       4,
       64,
     );

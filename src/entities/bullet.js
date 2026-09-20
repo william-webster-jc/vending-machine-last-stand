@@ -61,7 +61,7 @@ function hitAScalper(bullet, world) {
     if (scalper.health <= 0) continue;
 
     if (isOverlapping(bullet, getScalperHitBox(scalper))) {
-      scalper.health -= CONFIG.bullet.damage;
+      scalper.health -= world.stats.bulletDamage;
       return true;
     }
   }

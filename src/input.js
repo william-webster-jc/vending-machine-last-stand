@@ -18,6 +18,9 @@ const KEY_BINDINGS = {
   moveRight: ['KeyD', 'ArrowRight'],
   moveUp: ['KeyW', 'ArrowUp'],
   moveDown: ['KeyS', 'ArrowDown'],
+
+  // Menu confirm.
+  confirm: ['Enter', 'NumpadEnter', 'Space'],
 };
 
 // Every key currently being held down, by its physical position on the keyboard.
@@ -26,6 +29,20 @@ const heldKeys = new Set();
 // Set by any keypress or click. Read (and cleared) by consumeAnyPress below,
 // which is what "press any key to continue" screens use.
 let anyPressSinceLastCheck = false;
+
+// Where the most recent unhandled click landed, in game coordinates, or null.
+// Menus need "was there a click, and where?" rather than "is the button down?".
+let pendingClick = null;
+
+// Digit keys pressed since the last check, for menu shortcuts.
+const pendingDigits = [];
+
+// Confirm presses since the last check.
+//
+// Menus need the moment a key GOES DOWN, not whether it's still down. The key
+// you pressed to leave one screen is very often still held when the next one
+// appears, and "is it held" would have that single press skip both.
+let confirmPresses = 0;
 
 // Keys whose normal browser behaviour we need to cancel — otherwise the arrow
 // keys scroll the page underneath the game while you're trying to walk.
@@ -39,6 +56,16 @@ window.addEventListener('keydown', (event) => {
   }
   heldKeys.add(event.code);
   anyPressSinceLastCheck = true;
+
+  // Digit1..Digit9 -> 1..9
+  if (event.code.startsWith('Digit')) {
+    const digit = Number(event.code.slice(5));
+    if (digit >= 1 && digit <= 9) pendingDigits.push(digit);
+  }
+
+  if (KEY_BINDINGS.confirm.includes(event.code)) {
+    confirmPresses += 1;
+  }
 });
 
 window.addEventListener('keyup', (event) => {
@@ -99,6 +126,7 @@ export function attachMouseTo(canvas) {
     updateMousePosition(canvas, event);
     mouse.isDown = true;
     anyPressSinceLastCheck = true;
+    pendingClick = { x: mouse.x, y: mouse.y };
     event.preventDefault();
   });
 
@@ -158,4 +186,29 @@ export function consumeAnyPress() {
 // a click from three seconds ago instantly skips the screen you just reached.
 export function clearPendingPress() {
   anyPressSinceLastCheck = false;
+  pendingClick = null;
+  pendingDigits.length = 0;
+  confirmPresses = 0;
+}
+
+// True if confirm was pressed since last asked. Reading it takes it.
+export function consumeConfirm() {
+  const pressed = confirmPresses > 0;
+  confirmPresses = 0;
+  return pressed;
+}
+
+// Where a fresh click landed, in game coordinates, or null if there wasn't
+// one. Reading it takes it, so one click can't trigger two purchases.
+export function consumeClick() {
+  const click = pendingClick;
+  pendingClick = null;
+  return click;
+}
+
+// Digit keys pressed since last asked, oldest first.
+export function consumeDigits() {
+  const digits = pendingDigits.slice();
+  pendingDigits.length = 0;
+  return digits;
 }

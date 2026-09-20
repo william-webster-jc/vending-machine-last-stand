@@ -17,7 +17,17 @@ import { updateScalpers } from './entities/scalper.js';
 import { updateMachine } from './entities/machine.js';
 import { createWorld, GAME_STATE } from './world.js';
 import { updateNight } from './night.js';
-import { attachMouseTo, consumeAnyPress, clearPendingPress } from './input.js';
+import { createProfile, getShopRows, buyUpgrade } from './shop.js';
+import { getShopRowBox } from './render.js';
+import {
+  attachMouseTo,
+  consumeAnyPress,
+  clearPendingPress,
+  consumeClick,
+  consumeDigits,
+  getMousePosition,
+  consumeConfirm,
+} from './input.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -34,7 +44,10 @@ ctx.imageSmoothingEnabled = false;
 // `let` rather than `const` because losing a night throws this whole object
 // away and builds a fresh one — which is the entire restart mechanism.
 // -----------------------------------------------------------------------------
-let world = createWorld();
+// Your career: day count, cash, upgrades, and how battered the wall is. This
+// is the only thing that survives a night.
+let profile = createProfile();
+let world = createWorld(profile);
 
 // The mouse needs to know about the canvas so it can convert screen positions
 // into the game's own coordinates.
@@ -91,6 +104,11 @@ function update(deltaSeconds) {
     return;
   }
 
+  if (world.state === GAME_STATE.SHOP) {
+    updateShop();
+    return;
+  }
+
   updateBetweenNights(deltaSeconds);
 }
 
@@ -112,9 +130,6 @@ function updatePlaying(deltaSeconds) {
 
 // Shared by both endings. The world is frozen — nothing moves, nothing spawns.
 // All that ticks is the short delay before continuing is allowed.
-//
-// Surviving carries your day count forward into the next night. Losing sends
-// you back to night one.
 function updateBetweenNights(deltaSeconds) {
   world.gameOverCountdown -= deltaSeconds;
 
@@ -125,8 +140,81 @@ function updateBetweenNights(deltaSeconds) {
 
   if (!consumeAnyPress()) return;
 
-  const survived = world.state === GAME_STATE.NIGHT_SURVIVED;
-  world = createWorld(survived ? world.day + 1 : 1);
+  if (world.state === GAME_STATE.NIGHT_SURVIVED) {
+    collectPayAndOpenShop();
+  } else {
+    startFreshCareer();
+  }
+}
+
+// Sunrise: bank the wages, remember how battered the wall is, and open the
+// shop. The day only ticks over once you clock on again.
+function collectPayAndOpenShop() {
+  profile.cash += world.payslip.total;
+  profile.totalScalpersStopped += world.finalStats.scalpersStopped;
+  profile.nightsSurvived += 1;
+
+  // Carry the damage. This is what gives 'repair' its bite.
+  profile.barricadeHealth = world.barricade.health;
+  profile.day += 1;
+
+  world.state = GAME_STATE.SHOP;
+  world.hoveredShopRow = -1;
+  clearPendingPress();
+}
+
+function startFreshCareer() {
+  profile = createProfile();
+  world = createWorld(profile);
+}
+
+// -----------------------------------------------------------------------------
+// THE SHOP
+// Nothing in the world moves here; it's all reading clicks and keys.
+// -----------------------------------------------------------------------------
+
+function updateShop() {
+  const rows = getShopRows(profile);
+
+  trackHoveredRow(rows);
+
+  // Number keys.
+  for (const digit of consumeDigits()) {
+    const row = rows[digit - 1];
+    if (row) buyUpgrade(profile, row.id);
+  }
+
+  // Clicks on a row.
+  const click = consumeClick();
+  if (click) {
+    const index = findRowAt(click, rows.length);
+    if (index >= 0) buyUpgrade(profile, rows[index].id);
+  }
+
+  if (consumeConfirm()) {
+    clearPendingPress();
+    world = createWorld(profile);
+  }
+}
+
+function trackHoveredRow(rows) {
+  world.hoveredShopRow = findRowAt(getMousePosition(), rows.length);
+}
+
+function findRowAt(point, rowCount) {
+  for (let index = 0; index < rowCount; index++) {
+    const box = getShopRowBox(index);
+
+    const inside =
+      point.x >= box.x &&
+      point.x <= box.x + box.width &&
+      point.y >= box.y &&
+      point.y <= box.y + box.height;
+
+    if (inside) return index;
+  }
+
+  return -1;
 }
 
 // -----------------------------------------------------------------------------

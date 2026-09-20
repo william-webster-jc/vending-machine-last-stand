@@ -208,6 +208,12 @@ game needing to know the interface exists.
 *Goal: reasons to play the 40th night.*
 
 ### M14 — Scalper archetypes
+**Jace's difficulty notes (from after M6):** scalpers need more health overall, and
+real variety within a wave — some genuinely faster, some genuinely tankier, rather
+than everyone being the same person at a slightly different speed. Speed already
+varies a little (`scalper.speedVariation`); health does not vary at all yet, and
+that's the bigger miss. Tanky variants are the fix.
+
 Distinct types, each demanding a different response:
 - **Camper** — slow, high HP, parks at the barricade and grinds
 - **Runner** — fast, fragile, first to the breach
@@ -228,7 +234,12 @@ Spend on the barricade itself: reinforced plating, auto-turrets mounted on top, 
 mines in the breach zone, a repair drone that patches it mid-night.
 **Done when:** Your setup is a strategy, and you have a favourite one.
 
-### M17 — Boss nights
+### M17 — Bosses
+**Jace's note (from after M6):** bosses shouldn't only headline whole nights — big
+tanky ones should also turn up *inside* ordinary waves as a spike, not just every
+fifth night. Worth building the boss as an entity that can be dropped into any wave,
+then using that for both.
+
 Every 5th night, a named boss with a telegraphed attack pattern and a phase change at
 half health. **THE RESELLER** — summons bot swarms, charges the barricade, and will
 absolutely buy out the machine if you let it through.
@@ -294,7 +305,7 @@ Nothing blocking. Noted here so they don't get lost:
 
 ## Status
 
-Phase 1 in progress. Next up: **M7 — Paycheck and upgrades**.
+Phase 1 in progress. Next up: **M8 — Title screen**.
 
 | Milestone | Status |
 |---|---|
@@ -304,7 +315,7 @@ Phase 1 in progress. Next up: **M7 — Paycheck and upgrades**.
 | M4 Scalpers and the barricade | ☑ |
 | M5 The breach | ☑ |
 | M6 Survive the night | ☑ |
-| M7 Paycheck and upgrades | ☐ |
+| M7 Paycheck and upgrades | ☑ |
 | M8 Title screen | ☐ |
 | M9 Interviews: hire help | ☐ |
 | M10–M23 | ☐ |

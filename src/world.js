@@ -12,21 +12,33 @@
 
 import { CONFIG } from './config.js';
 import { createBarricade } from './entities/barricade.js';
+import { getStats } from './shop.js';
 
 export const GAME_STATE = {
   PLAYING: 'playing',
   GAME_OVER: 'game-over',
   NIGHT_SURVIVED: 'night-survived',
+  SHOP: 'shop',
 };
 
-// `day` is passed in so surviving a night can carry the count forward into
-// the next one. Everything else starts fresh.
-export function createWorld(day = 1) {
+// A night is built FROM your profile. Your day count, your upgrades and how
+// battered the wall is all come from there; everything else starts fresh.
+export function createWorld(profile) {
+  const stats = getStats(profile);
+
   return {
     state: GAME_STATE.PLAYING,
 
+    // Your career. Kept on the world so screens can read your cash and
+    // upgrades without every one of them being handed it separately.
+    profile,
+
     // Which night of the job this is. Night one is day 1.
-    day,
+    day: profile.day,
+
+    // What your upgrades add up to. Worked out once here rather than being
+    // recalculated by every file that needs a number.
+    stats,
 
     // How far into tonight's shift we are. Sunrise is at night.durationSeconds.
     elapsedSeconds: 0,
@@ -61,8 +73,9 @@ export function createWorld(day = 1) {
     // Running tally of how many you've put down tonight.
     scalpersStopped: 0,
 
-    // The wall's health, and whether it's been smashed open.
-    barricade: createBarricade(),
+    // The wall's health, and whether it's been smashed open. Damage carries
+    // over from last night unless you paid to have it repaired.
+    barricade: createBarricade(stats.barricadeMaxHealth, profile.barricadeHealth),
 
     machine: {
       // Packs left inside. Hits zero and the night is over.

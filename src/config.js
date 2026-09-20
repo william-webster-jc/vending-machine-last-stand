@@ -264,6 +264,17 @@ export const CONFIG = {
     healthBarWarning: '#e8c34a',
     healthBarCritical: '#e05454',
 
+    // Shop
+    shopVeil: 'rgba(14, 10, 24, 0.93)',
+    shopPanel: '#241c38',
+    shopPanelEdge: '#3d3158',
+    shopRowHighlight: '#33284f',
+    shopName: '#f4f0e4',
+    shopBlurb: '#9a93ad',
+    cash: '#7ae06a',
+    cashShort: '#e06a6a',
+    shopMaxed: '#6ad0e0',
+
     // Night survived screen
     sunriseTitle: '#ffd479',
     sunriseVeil: 'rgba(24, 14, 30, 0.74)',
@@ -359,6 +370,73 @@ export const CONFIG = {
   },
 
   // ---------------------------------------------------------------------------
+  // PAY AND UPGRADES
+  //
+  // What you earn for a night's work, and what you can spend it on the next
+  // day. Every effect is a number here, so the whole economy is yours to bend.
+  // ---------------------------------------------------------------------------
+  economy: {
+    // Flat pay for turning up and surviving.
+    basePayPerNight: 40,
+
+    // Piece rate, so playing well pays better than merely surviving.
+    payPerScalperStopped: 3,
+    payPerPackSaved: 6,
+
+    // A bonus for never letting the wall fall. This is what makes repairing
+    // compete with upgrading — a strong wall keeps paying you back.
+    barricadeHeldBonus: 30,
+
+    // What it costs to put one point of health back into the barricade.
+    // Damage carries over between nights, so this bill follows you.
+    repairCostPerPoint: 0.55,
+
+    // Each upgrade is just an entry in this list. Adding a new one is a new
+    // entry plus a line in getStats() — no new systems.
+    items: [
+      {
+        id: 'reinforce',
+        name: 'REINFORCE WALL',
+        blurb: 'MAX BARRICADE',
+        effectPerLevel: 40,
+        maxLevel: 5,
+        baseCost: 70,
+        costGrowth: 45,
+      },
+      {
+        id: 'damage',
+        name: 'HEAVIER ROUNDS',
+        blurb: 'BULLET DAMAGE',
+        effectPerLevel: 4,
+        maxLevel: 5,
+        baseCost: 60,
+        costGrowth: 40,
+      },
+      {
+        id: 'firerate',
+        name: 'FASTER TRIGGER',
+        blurb: 'SHOTS PER SECOND',
+        // A multiplier on the delay between shots, so each level shaves 12%
+        // off. Multiplying rather than subtracting stops it ever reaching a
+        // delay of zero, which would fire infinite bullets in one frame.
+        effectPerLevel: 0.88,
+        maxLevel: 5,
+        baseCost: 65,
+        costGrowth: 45,
+      },
+      {
+        id: 'boots',
+        name: 'BETTER BOOTS',
+        blurb: 'MOVE SPEED',
+        effectPerLevel: 12,
+        maxLevel: 4,
+        baseCost: 50,
+        costGrowth: 35,
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
   // GAME OVER
   // ---------------------------------------------------------------------------
   gameOver: {
@@ -383,7 +461,7 @@ export const CONFIG = {
   debug: {
     showDebug: true,
     fpsSampleSeconds: 0.5,
-    buildLabel: 'M6 - SURVIVE THE NIGHT',
+    buildLabel: 'M7 - PAYCHECK',
 
     // Shows your exact position on screen. Handy while testing movement.
     showPosition: true,

@@ -84,7 +84,7 @@ function updateFiring(guard, world, deltaSeconds) {
   const muzzle = getMuzzlePosition(guard);
   spawnBullet(world, muzzle.x, muzzle.y, guard.aimAngle);
 
-  guard.fireCooldown = CONFIG.weapon.fireIntervalSeconds;
+  guard.fireCooldown = world.stats.fireIntervalSeconds;
   guard.hasFiredThisClick = true;
 }
 
@@ -93,7 +93,10 @@ function updateFiring(guard, world, deltaSeconds) {
 // -----------------------------------------------------------------------------
 
 function updateMovement(guard, world, deltaSeconds) {
-  const { speed, verticalSpeedFactor } = CONFIG.guard;
+  const { verticalSpeedFactor } = CONFIG.guard;
+
+  // Move speed comes from your boots upgrade, not straight from config.
+  const speed = world.stats.moveSpeed;
   const direction = getMoveDirection();
 
   // Standing still. Nothing to do.

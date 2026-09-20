@@ -11,6 +11,7 @@
 import { CONFIG } from './config.js';
 import { spawnScalper } from './entities/scalper.js';
 import { GAME_STATE } from './world.js';
+import { calculatePay } from './shop.js';
 
 // How far through the night we are, from 0 at dusk to 1 at full sunrise.
 export function getNightProgress(world) {
@@ -110,6 +111,11 @@ function surviveTheNight(world) {
     barricadeHeld: !world.barricade.isBroken,
     packsSaved: world.machine.packsRemaining,
   };
+
+  // The payslip is worked out at sunrise and kept, so the screen shows what
+  // you actually earned rather than recalculating from a world that's about
+  // to be replaced.
+  world.payslip = calculatePay(world.finalStats);
 }
 
 // -----------------------------------------------------------------------------
