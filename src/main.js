@@ -14,8 +14,9 @@ import { drawScene } from './render.js';
 import { updateGuard } from './entities/guard.js';
 import { updateBullets } from './entities/bullet.js';
 import { updateScalpers, updateScalperSpawning } from './entities/scalper.js';
-import { createBarricade } from './entities/barricade.js';
-import { attachMouseTo } from './input.js';
+import { updateMachine } from './entities/machine.js';
+import { createWorld, GAME_STATE } from './world.js';
+import { attachMouseTo, consumeAnyPress, clearPendingPress } from './input.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -27,39 +28,12 @@ canvas.height = CONFIG.screen.height;
 ctx.imageSmoothingEnabled = false;
 
 // -----------------------------------------------------------------------------
-// THE WORLD — everything the game currently knows about.
-// For M1 that's just where the guard is standing. It grows every milestone.
+// THE WORLD — everything the game currently knows about. Built in world.js.
+//
+// `let` rather than `const` because losing a night throws this whole object
+// away and builds a fresh one — which is the entire restart mechanism.
 // -----------------------------------------------------------------------------
-const world = {
-  guard: {
-    x: CONFIG.guard.startX,
-    y: CONFIG.guard.startY,
-
-    // Which way he's turned (1 right, -1 left) and the angle he's aiming along.
-    facing: 1,
-    aimAngle: 0,
-
-    // Counts down to zero between shots. See updateFiring in guard.js.
-    fireCooldown: 0,
-    hasFiredThisClick: false,
-  },
-
-  // Every bullet currently in the air. Starts empty, fills as you shoot,
-  // empties again as they fly off the screen.
-  bullets: [],
-
-  // Every scalper on the floor right now.
-  scalpers: [],
-
-  // Counts down to the next scalper arriving. M6 replaces this with waves.
-  scalperSpawnCountdown: CONFIG.scalper.spawnIntervalSeconds,
-
-  // Running tally of how many you've put down tonight.
-  scalpersStopped: 0,
-
-  // The wall's health, and whether it's been smashed open.
-  barricade: createBarricade(),
-};
+let world = createWorld();
 
 // The mouse needs to know about the canvas so it can convert screen positions
 // into the game's own coordinates.
@@ -107,13 +81,49 @@ function measureFrameRate(deltaSeconds) {
 // Every new thing we build gets one line here.
 // -----------------------------------------------------------------------------
 function update(deltaSeconds) {
+  measureFrameRate(deltaSeconds);
+
+  // Each game state does a completely different job. Splitting them like this
+  // is what stops "is the game over?" checks leaking into every other file.
+  if (world.state === GAME_STATE.GAME_OVER) {
+    updateGameOver(deltaSeconds);
+    return;
+  }
+
+  updatePlaying(deltaSeconds);
+}
+
+function updatePlaying(deltaSeconds) {
+  world.elapsedSeconds += deltaSeconds;
+
   updateScalperSpawning(world, deltaSeconds);
 
   updateGuard(world.guard, world, deltaSeconds);
   updateScalpers(world, deltaSeconds);
   updateBullets(world, deltaSeconds);
+  updateMachine(world, deltaSeconds);
 
-  measureFrameRate(deltaSeconds);
+  // Losing happens inside updateMachine. If it just did, swallow whatever was
+  // being pressed at that moment so the shot that lost you the night doesn't
+  // immediately skip the game over screen too.
+  if (world.state === GAME_STATE.GAME_OVER) {
+    clearPendingPress();
+  }
+}
+
+// The world is frozen here — nothing moves, nothing spawns. All that ticks is
+// the short delay before restarting is allowed.
+function updateGameOver(deltaSeconds) {
+  world.gameOverCountdown -= deltaSeconds;
+
+  if (world.gameOverCountdown > 0) {
+    clearPendingPress();
+    return;
+  }
+
+  if (consumeAnyPress()) {
+    world = createWorld();
+  }
 }
 
 // -----------------------------------------------------------------------------

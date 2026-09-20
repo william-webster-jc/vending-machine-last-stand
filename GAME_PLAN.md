@@ -291,7 +291,7 @@ Nothing blocking. Noted here so they don't get lost:
 
 ## Status
 
-Phase 1 in progress. Next up: **M5 — The breach, and losing the machine**.
+Phase 1 in progress. Next up: **M6 — Survive the night**.
 
 | Milestone | Status |
 |---|---|
@@ -299,7 +299,7 @@ Phase 1 in progress. Next up: **M5 — The breach, and losing the machine**.
 | M2 Walk the beat | ☑ |
 | M3 Draw your weapon | ☑ |
 | M4 Scalpers and the barricade | ☑ |
-| M5 The breach | ☐ |
+| M5 The breach | ☑ |
 | M6 Survive the night | ☐ |
 | M7 Paycheck and upgrades | ☐ |
 | M8 Title screen | ☐ |

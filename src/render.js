@@ -13,19 +13,25 @@ import { drawGuard } from './entities/guard-art.js';
 import { drawScalper } from './entities/scalper-art.js';
 import { drawBullets } from './entities/bullet.js';
 import { getMousePosition } from './input.js';
+import { GAME_STATE } from './world.js';
 
 export function drawScene(ctx, world, fps) {
   drawBackWall(ctx);
   drawFloor(ctx);
 
-  drawMachine(ctx);
+  drawMachine(ctx, world.machine);
   drawBarricade(ctx, world.barricade);
   drawCharacters(ctx, world);
 
   // Bullets go on top of the barricade, because you're shooting OVER your own
   // wall at whatever is on the far side of it.
   drawBullets(ctx, world);
-  drawCrosshair(ctx);
+
+  if (world.state === GAME_STATE.GAME_OVER) {
+    drawGameOverScreen(ctx, world);
+  } else {
+    drawCrosshair(ctx);
+  }
 
   if (CONFIG.debug.showDebug) {
     drawDebugReadout(ctx, world, fps);
@@ -167,6 +173,83 @@ function drawCrosshair(ctx) {
   ctx.fillRect(x, y + 3, 1, 3);
 }
 
+// The screen you earn by losing.
+//
+// It's drawn OVER the frozen scene rather than replacing it, so you can still
+// see the crowd standing around your emptied machine. Being shown exactly how
+// you lost lands better than a blank screen does.
+function drawGameOverScreen(ctx, world) {
+  const { width, height } = CONFIG.screen;
+  const c = CONFIG.colors;
+  const stats = world.finalStats;
+
+  ctx.fillStyle = c.gameOverVeil;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.font = '16px monospace';
+  ctx.fillStyle = c.gameOverTitle;
+  ctx.fillText('GAME OVER', width / 2, 64);
+
+  ctx.font = '8px monospace';
+  ctx.fillStyle = c.gameOverText;
+  ctx.fillText('THEY BOUGHT OUT THE MACHINE', width / 2, 84);
+
+  drawStatLines(ctx, [
+    ['SCALPERS STOPPED', `${stats.scalpersStopped}`],
+    ['YOU LASTED', formatDuration(stats.secondsSurvived)],
+    ['STILL ON THE FLOOR', `${stats.scalpersOnFloor}`],
+    ['BARRICADE', stats.barricadeHeld ? 'HELD' : 'BREACHED'],
+  ]);
+
+  // The prompt only appears once restarting actually works, so it never
+  // invites a press the game is going to ignore.
+  if (world.gameOverCountdown <= 0) {
+    ctx.fillStyle = c.gameOverHint;
+    ctx.fillText('PRESS ANY KEY TO WORK ANOTHER NIGHT', width / 2, 172);
+  }
+
+  // Put the canvas back how we found it, so the next frame's debug text isn't
+  // mysteriously centred.
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+}
+
+// Labels and values in two tidy columns.
+//
+// Centring each whole line individually — the obvious first attempt — makes
+// the columns wander, because a longer value drags its label leftward. Pinning
+// the labels' right edge and the values' left edge to fixed positions instead
+// keeps them in line whatever they say.
+function drawStatLines(ctx, lines) {
+  const labelRightEdge = 210;
+  const valueLeftEdge = 222;
+  const firstLineY = 106;
+  const lineSpacing = 12;
+
+  ctx.fillStyle = CONFIG.colors.gameOverDim;
+
+  lines.forEach(([label, value], index) => {
+    const y = firstLineY + index * lineSpacing;
+
+    ctx.textAlign = 'right';
+    ctx.fillText(label, labelRightEdge, y);
+
+    ctx.textAlign = 'left';
+    ctx.fillText(value, valueLeftEdge, y);
+  });
+
+  ctx.textAlign = 'center';
+}
+
+function formatDuration(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
 // Small corner readouts. These are for you, not the player — they get switched
 // off with CONFIG.debug.showDebug.
 function drawDebugReadout(ctx, world, fps) {
@@ -192,6 +275,7 @@ function drawDebugReadout(ctx, world, fps) {
   if (CONFIG.debug.showScalperCount) {
     ctx.fillText(`scalpers ${world.scalpers.length}`, 4, 34);
     ctx.fillText(`stopped ${world.scalpersStopped}`, 4, 44);
+    ctx.fillText(`packs ${world.machine.packsRemaining}`, 4, 54);
   }
 
   ctx.textBaseline = 'bottom';

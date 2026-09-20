@@ -45,6 +45,22 @@ export const CONFIG = {
     width: 50,
     height: 66,
     footY: 146,
+
+    // How many packs are inside. This is your SECOND health bar: scalpers who
+    // reach the machine buy them one at a time, and when the last one goes,
+    // the night is lost. It's also how many packs are drawn behind the glass,
+    // so the stock you see is the stock you have.
+    packCount: 12,
+
+    // How long ONE scalper takes to buy ONE pack. Two scalpers empty it twice
+    // as fast, ten of them ten times as fast — so thinning the crowd genuinely
+    // buys you time, which is what makes a comeback possible.
+    // Drop this to 0.2 and reaching the machine is close to instant death.
+    packPurchaseSeconds: 2.2,
+
+    stockBarWidth: 44,
+    stockBarHeight: 4,
+    stockBarOffsetY: 10,
   },
 
   // ---------------------------------------------------------------------------
@@ -247,6 +263,13 @@ export const CONFIG = {
     healthBarWarning: '#e8c34a',
     healthBarCritical: '#e05454',
 
+    // Game over screen
+    gameOverVeil: 'rgba(12, 8, 20, 0.78)',
+    gameOverTitle: '#ff5d5d',
+    gameOverText: '#f4f0e4',
+    gameOverDim: '#9a93ad',
+    gameOverHint: '#7ae0b0',
+
     // Bullets and crosshair
     bulletCore: '#fff3a8',
     bulletEdge: '#f2913c',
@@ -255,6 +278,15 @@ export const CONFIG = {
     // Debug readout
     debugText: '#9dff7a',
     debugLabel: '#7a7a96',
+  },
+
+  // ---------------------------------------------------------------------------
+  // GAME OVER
+  // ---------------------------------------------------------------------------
+  gameOver: {
+    // A short pause before the restart works, so the click you were firing
+    // with doesn't skip straight past the screen you just earned.
+    restartDelaySeconds: 1.2,
   },
 
   // ---------------------------------------------------------------------------
@@ -273,7 +305,7 @@ export const CONFIG = {
   debug: {
     showDebug: true,
     fpsSampleSeconds: 0.5,
-    buildLabel: 'M4 - SCALPERS',
+    buildLabel: 'M5 - THE BREACH',
 
     // Shows your exact position on screen. Handy while testing movement.
     showPosition: true,

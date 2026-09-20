@@ -1,13 +1,68 @@
 // =============================================================================
 // machine.js — the vending machine. The thing you are protecting.
 //
-// Right now it only knows how to draw itself. Health and the "scalpers buying
-// packs" meter arrive in M5.
+// Its stock of packs is your second health bar. Scalpers who reach it buy
+// those packs one at a time, and when the last one goes, you've lost the
+// night. The packs behind the glass ARE the stock — what you see is what
+// you have left.
 // =============================================================================
 
 import { CONFIG } from '../config.js';
+import { drawHealthBar } from '../pixel.js';
+import { SCALPER_STATE } from './scalper.js';
+import { GAME_STATE } from '../world.js';
 
-export function drawMachine(ctx) {
+// -----------------------------------------------------------------------------
+// BEING ROBBED
+// -----------------------------------------------------------------------------
+
+export function updateMachine(world, deltaSeconds) {
+  const buyers = countBuyers(world);
+  if (buyers === 0) return;
+
+  // Every scalper at the machine buys at the same rate, so the crowd drains
+  // your stock in proportion to its size. That's the whole reason a comeback
+  // is possible: drop half the crowd and the bleeding halves with it.
+  const packsPerSecond = buyers / CONFIG.machine.packPurchaseSeconds;
+  world.machine.purchaseProgress += packsPerSecond * deltaSeconds;
+
+  // A busy crowd can finish more than one pack in a single frame, so this
+  // loops rather than just checking once.
+  while (world.machine.purchaseProgress >= 1 && world.machine.packsRemaining > 0) {
+    world.machine.purchaseProgress -= 1;
+    world.machine.packsRemaining -= 1;
+  }
+
+  if (world.machine.packsRemaining <= 0) {
+    world.machine.packsRemaining = 0;
+    world.machine.purchaseProgress = 0;
+    endTheNight(world);
+  }
+}
+
+function countBuyers(world) {
+  let count = 0;
+  for (const scalper of world.scalpers) {
+    if (scalper.state === SCALPER_STATE.AT_MACHINE) count++;
+  }
+  return count;
+}
+
+function endTheNight(world) {
+  world.state = GAME_STATE.GAME_OVER;
+  world.gameOverCountdown = CONFIG.gameOver.restartDelaySeconds;
+
+  // Snapshot the numbers now, so the game over screen isn't reading from a
+  // world that's about to be thrown away and replaced.
+  world.finalStats = {
+    scalpersStopped: world.scalpersStopped,
+    secondsSurvived: world.elapsedSeconds,
+    scalpersOnFloor: world.scalpers.length,
+    barricadeHeld: !world.barricade.isBroken,
+  };
+}
+
+export function drawMachine(ctx, machine) {
   const { x, width, height, footY } = CONFIG.machine;
   const c = CONFIG.colors;
 
@@ -33,17 +88,32 @@ export function drawMachine(ctx) {
   ctx.fillRect(x + 14, top + 5, 4, 4);
   ctx.fillRect(x + 22, top + 5, 4, 4);
 
-  drawGlassAndPacks(ctx, x, top);
+  drawGlassAndPacks(ctx, x, top, machine);
   drawControlColumn(ctx, x, top);
   drawDispenserSlot(ctx, x, top);
 
   // Floor shadow so it doesn't look like it's hovering
   ctx.fillStyle = c.floorContactShadow;
   ctx.fillRect(x - 2, footY, width + 4, 2);
+
+  drawStockBar(ctx, machine);
+}
+
+// A bar above the machine showing how much stock is left, matching the one
+// over the barricade. The packs behind the glass say the same thing, but at
+// this size a bar is readable from the far end of the floor.
+function drawStockBar(ctx, machine) {
+  const cfg = CONFIG.machine;
+  const fraction = machine.packsRemaining / cfg.packCount;
+
+  const barX = Math.round(cfg.x + cfg.width / 2 - cfg.stockBarWidth / 2);
+  const barY = cfg.footY - cfg.height - cfg.stockBarOffsetY;
+
+  drawHealthBar(ctx, barX, barY, cfg.stockBarWidth, cfg.stockBarHeight, fraction);
 }
 
 // The glass front, with rows of colourful card packs behind it.
-function drawGlassAndPacks(ctx, x, top) {
+function drawGlassAndPacks(ctx, x, top, machine) {
   const c = CONFIG.colors;
 
   const glassX = x + 4;
@@ -54,12 +124,16 @@ function drawGlassAndPacks(ctx, x, top) {
   ctx.fillStyle = c.machineGlass;
   ctx.fillRect(glassX, glassY, glassW, glassH);
 
-  // The packs: 3 columns, 4 rows of little coloured rectangles.
+  // The packs: 3 columns, 4 rows. Only the ones still in stock get drawn, so
+  // the machine visibly empties from the bottom up as the crowd buys it out.
+  // This is the honest version of a stock counter — you watch it go.
   let packIndex = 0;
   for (let row = 0; row < 4; row++) {
     for (let col = 0; col < 3; col++) {
-      ctx.fillStyle = c.packColors[packIndex % c.packColors.length];
-      ctx.fillRect(glassX + 2 + col * 10, glassY + 2 + row * 10, 8, 8);
+      if (packIndex < machine.packsRemaining) {
+        ctx.fillStyle = c.packColors[packIndex % c.packColors.length];
+        ctx.fillRect(glassX + 2 + col * 10, glassY + 2 + row * 10, 8, 8);
+      }
       packIndex++;
     }
   }

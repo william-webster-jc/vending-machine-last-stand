@@ -23,6 +23,10 @@ const KEY_BINDINGS = {
 // Every key currently being held down, by its physical position on the keyboard.
 const heldKeys = new Set();
 
+// Set by any keypress or click. Read (and cleared) by consumeAnyPress below,
+// which is what "press any key to continue" screens use.
+let anyPressSinceLastCheck = false;
+
 // Keys whose normal browser behaviour we need to cancel — otherwise the arrow
 // keys scroll the page underneath the game while you're trying to walk.
 const KEYS_TO_SWALLOW = new Set([
@@ -34,6 +38,7 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault();
   }
   heldKeys.add(event.code);
+  anyPressSinceLastCheck = true;
 });
 
 window.addEventListener('keyup', (event) => {
@@ -93,6 +98,7 @@ export function attachMouseTo(canvas) {
   canvas.addEventListener('mousedown', (event) => {
     updateMousePosition(canvas, event);
     mouse.isDown = true;
+    anyPressSinceLastCheck = true;
     event.preventDefault();
   });
 
@@ -131,4 +137,25 @@ export function getMousePosition() {
 
 export function isFireHeld() {
   return mouse.isDown;
+}
+
+// =============================================================================
+// "PRESS ANY KEY"
+//
+// Menus want a different question from gameplay. Gameplay asks "is W held down
+// right now?"; a game over screen asks "has anything been pressed since I last
+// looked?". This answers the second one, and forgets the press once it's been
+// read so a single tap can't trigger two different things.
+// =============================================================================
+
+export function consumeAnyPress() {
+  const wasPressed = anyPressSinceLastCheck;
+  anyPressSinceLastCheck = false;
+  return wasPressed;
+}
+
+// Forget any press that happened while the game wasn't listening — otherwise
+// a click from three seconds ago instantly skips the screen you just reached.
+export function clearPendingPress() {
+  anyPressSinceLastCheck = false;
 }
